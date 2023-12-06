@@ -1,0 +1,6 @@
+function [ Razimutal ] = azimutalMatrix(thetaAzimutal)
+
+Razimutal  = [  1            0                          0       ;...
+                0   cos(thetaAzimutal)      sin(thetaAzimutal)  ;...
+                0   -sin(thetaAzimutal)     cos(thetaAzimutal) ];
+end
