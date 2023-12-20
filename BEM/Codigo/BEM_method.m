@@ -1,16 +1,15 @@
-function [ A , Aprime , PHI , ALPHA, CL, CD, ERR , j ] = BEM_method (B, c , r , t, lambda, theta_t, theta_p, Rrot, Rhub, Tol , CD_CL , flag_CLCD, factorCorreccion, path)
+function [ A , Aprime , PHI , ALPHA, CL, CD, ERR , j ] = BEM_method (B, c , r , t, lambda, theta_t, theta_p, Rrot, Rhub, Tol , CD_CL , flag_CLCD, factorCorreccion, aoa, clift, cdrag, cmomt)
 
 %% Inicializo parámetros 
-a0       = 0 ;
-a_prime0 = 0 ;
+a0       = 1/3 ;
+a_prime0 = 0   ;
 eps      = 1e-3;
 erraux   = Tol + eps ;
 lambda_r = lambda*r/Rrot;
 
-file = defineFile(t, path);
-
-%% Guardar datos de perfil
-datos = importAirfoilData(path, file);
+%     file = defineFile(t, path) ;
+%     %% Guardar datos de perfil
+%     datos = importAirfoilData(path, file);
 
 %% Cálculo solidez
 sigma    = B*c/( 2*pi*r ) ;   
@@ -24,14 +23,15 @@ while erraux > Tol
     
     %% Determino ángulod de velocidad relativa y ángulo de ataque
     phi(j)   = atan( (1 - a(j)) / ((( 1 + aprime(j)) * lambda_r ) + eps) ) ;%Angulo de velocidad relativa ( Radianes )
-    alpha(j) = phi(j) - (theta_t + theta_p) ;% Angulo de ataque 
+    thetaTwist = deg2rad(theta_t) + theta_p ;
+    alpha(j) = phi(j) - thetaTwist          ;% Angulo de ataque 
     
     %% Defino coeficiente de sustentación y de arrastre según ángulo de ataque
     if ( flag_CLCD == 0 ) % en caso de contar con aproximación para párametros ingresarlos manualmente
         Cl(j) = 0.5 ; % Aproximado en grados
         Cd(j) = 0.01;
     elseif ( flag_CLCD == 1 )
-        [Cl(j), Cd(j)] = airfoilCoef( alpha(j), datos );
+        [Cl(j), Cd(j), Cm(j)] = airfoilCoef( alpha(j), [aoa(:,t), clift(:,t), cdrag(:,t), cmomt(:,t)] );
     else
         disp ('Wrong choices') ;
     end

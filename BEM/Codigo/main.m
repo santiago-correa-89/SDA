@@ -22,9 +22,11 @@ clc;
 %% Importar data de la pala
 % path          = 'data/Tjaereborg' ; 
 % file          = '/Tjaereborg_2.0MW_061m.txt';
- 
-path          = 'Data/NREL2.5MW_116' ;
-file          = '/NREL_2.5MW_116m_1En lo que .txt';
+
+addpath( genpath( [ pwd '/uBEM'] ) );
+
+path          = 'Data/NREL_5MW' ;
+file          = '/NRELOffshrBsline5MW_bladeData.txt';
 
 % Abre el archivo en modo de lectura ('r' para lectura)
 fid = fopen(fullfile(path, file), 'r');
@@ -34,7 +36,7 @@ if fid == -1
     error('No se pudo abrir el archivo.');
 end
 
-blade = importdata(fullfile(path, file));
+blade = readtable(fullfile(path, file));
 
 
 %% Datos del problema
@@ -62,7 +64,7 @@ rho    = 1.225;             % Densidad del aire
 % factorCorreccion = 0 - No aplica factor de corrección
 % factorCorreccion = 1 - Factor de corrección de Glauert
 % factorCorreccion = 2 - Factor de corrección de Wilson and Walker 1984 (Spera 1994)
-factorCorreccion = 2;
+factorCorreccion = 1;
 % Tolerancia de iteración BEM
 Tol = 1e-3;
 

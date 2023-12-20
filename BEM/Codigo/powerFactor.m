@@ -11,8 +11,4 @@ end
 M  = N*M;
 Cp = omega*M/((1/2)*rho*(V0^3)*pi*(Rrot^2));
 
-if Cp < 0
-    disp('Check')
-end
-
 end
