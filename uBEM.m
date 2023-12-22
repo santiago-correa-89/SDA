@@ -20,7 +20,7 @@ Iblade =  11776047   ; % Blade inertia in the root
 I      = nGen*nGen*Igen + Irot + 3*Iblade ; % Total inertia
 
 % Wind initialization 
-Vhub   = 3      ; % Wind velocity at hub height
+Vhub   = 20      ; % Wind velocity at hub height
 n      = 1/7       ; % Wind share potential coef
 
 % Flags

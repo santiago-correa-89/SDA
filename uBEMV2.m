@@ -20,7 +20,7 @@ Iblade =  11776047   ; % Blade inertia in the root
 I      =  nGen*nGen*Igen + Irot + 3*Iblade ; % Total inertia
 
 % Wind initialization 
-vVector   = ( 1:1:25 )  ; % Wind velocity at hub height
+vVector   = ( 3:1:25 )  ; % Wind velocity at hub height
 vVal      = length(vVector)    ;
 n         = 1/7             ; % Wind share potential coef
 
@@ -319,7 +319,7 @@ TSR =(omega(end,:)./vVector)*R ;
 %
 value     = 18 ;
 startPlot = 1; 
-tStep     = 0.05 ;
+tStep     = 0.1 ;
 lw = 2.0 ; ms = 10; plotfontsize = 22 ; spanPlotTime = 1 ;
 axislw = 2 ; axisFontSize = 20 ; legendFontSize = 15 ; curveFontSize = 15 ; 
 folderPathFigs = './figs/uBEM/General' ;
@@ -332,6 +332,7 @@ plot(timeVector(startPlot:end-1), powerOutput(startPlot:end-1, value), 'r-', 'Li
 hold on
 plot(timeVector(startPlot:end-1), ones(1,length(timeVector(startPlot:end-1)))*5e6, 'b--', 'LineWidth', lw,'markersize',ms )
 labx=xlabel('Time (s)'); laby=ylabel('Power (W)');
+xlim( [ min(vVector(:)), max(vVector(:)) ] );
 set(gca, 'linewidth', axislw, 'fontsize', curveFontSize ) ;
 set(labx, 'FontSize', axisFontSize); set(laby, 'FontSize', axisFontSize) ;
 title(labelTitle)
@@ -346,6 +347,7 @@ hold on
 plot(timeVector(startPlot:end-1), nGen*genTrq(startPlot:end-1, value), 'b--', 'LineWidth',lw,'markersize',ms )
 legend('Rotor Momentum', 'Generator Momentum', 'location','Best')
 labx=xlabel('Time (s)'); laby=ylabel('Momentum (Nm)');
+xlim( [ min(vVector(:)), max(vVector(:)) ] );
 set(gca, 'linewidth', axislw, 'fontsize', curveFontSize ) ;
 set(labx, 'FontSize', axisFontSize); set(laby, 'FontSize', axisFontSize) ;
 title(labelTitle)
@@ -362,6 +364,7 @@ plot(vVector, omega(end,:)*60/2/pi, 'g-', 'LineWidth',lw,'markersize',ms )
 hold on
 plot(vVector, TSR, 'k-', 'LineWidth',lw,'markersize',ms )
 legend('\theta_p (º)','Generator Momentum (kN m)', 'Angular speed (RPM)', 'TSR', 'location','Best')
+xlim( [ min(vVector(:)), max(vVector(:)) ] );
 labx=xlabel('Time (s)'); laby=ylabel('Parameters');
 set(gca, 'linewidth', axislw, 'fontsize', curveFontSize ) ;
 set(labx, 'FontSize', axisFontSize); set(laby, 'FontSize', axisFontSize) ;
@@ -380,6 +383,7 @@ plot(vVector, totalThrust(end,:), 'k-', 'LineWidth',lw,'markersize',ms )
 hold on
 plot(vVector, omega(end,:)*nGen*60/2/pi, 'y-', 'LineWidth',lw,'markersize',ms )
 legend('Rotor power (kW)','Generator power (kW)', 'Rotor Momentum (kN m)', 'Rotor Thrust (kN)', 'Generator Speed (RPM)','location','Best')
+xlim( [ min(vVector(:)), max(vVector(:)) ] );
 labx=xlabel('Time (s)'); laby=ylabel('Parameters');
 set(gca, 'linewidth', axislw, 'fontsize', curveFontSize ) ;
 set(labx, 'FontSize', axisFontSize); set(laby, 'FontSize', axisFontSize) ;
