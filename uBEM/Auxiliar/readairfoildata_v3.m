@@ -11,9 +11,6 @@ for i = 1:length(polars)
             cl(j,i)      = strucdata(1,2);
             cd(j,i)      = strucdata(1,3);
             cm(j,i)      = strucdata(1,4);
-            %fstat(:,i)      = strucdata(1,4);
-            %clinv(:,i)      = strucdata(1,4);
-            %clfullysep(:,i) = strucdata(1,4);
         end
     else
         strucdata       = table2array( readtable( fullfile( path, polars{i} )) );
@@ -32,9 +29,6 @@ for i = 1:length(polars)
             cl(:,i)         = strucdata(:,2) ;
             cd(:,i)         = strucdata(:,3) ;
             cm(:,i)         = strucdata(:,4) ;
-            %fstat(:,i)      = strucdata(:,4);
-            %clinv(:,i)      = strucdata(:,4);
-            %clfullysep(:,i) = strucdata(:,4);
         end
     end
 end

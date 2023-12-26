@@ -17,7 +17,7 @@ genOmega   = nGen*rotOmega;  % actual generator speed
     maxTorque     = 47402.91   ;    % Max generator torque in region 3
     ratedPower    = 5296610.0  ;    % Rated generator power in region 3
     maxRatedTorq  = 15000.0    ;    % Maximum torque rate
-    rgn2const     = 2.332287   ;    % Generator torque constant in Region 2
+    rgn2const     = 2.0031     ;    % Generator torque constant in Region 2
 
     %% Torque parameters
     syncSpeed = omegaRatedSp/( 1.0 + 0.01*ratedSynSp ) ;

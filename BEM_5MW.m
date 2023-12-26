@@ -25,7 +25,7 @@ clc;
 % file          = '/Tjaereborg_2.0MW_061m.txt';
 
 addpath( genpath( [ pwd '/BEM']  ) );
-addpath( genpath( [ pwd '/uBEM/Data'] ) );
+addpath( genpath( [ pwd '/uBEM']  ) );
 
 path       = '/NREL_5MW' ;
 file       = '/Polars/NRELOffshrBsline5MWbladeDataV1.txt';
@@ -62,11 +62,12 @@ Rrot    = 126/2 ; % Radio del rotor
 
 theta_p = deg2rad(-5:1:5)' ; % Vector de Ángulo de Twist de la las secciones en radianes
 
-V0     = 11.4;              % m/s
-lambda = (3:1:12)';         % Tip speed ratio
+V0     = 12 ;              % m/s
+lambda = (4:1:12)';         % Tip speed ratio
 omega  = (lambda*V0/Rrot) ; % Velocidad angular
 B      = 3;                 % Número de palas
-rho    = 1.225;             % Densidad del aire 
+rho    = 1.225;             % Densidad del aire
+nGen   = 97;                % Generator ratio
 
 %% Párametros de Iteración
 % Factor de corrección por factor de inducción axial "a" elevado
@@ -97,22 +98,22 @@ Ct       = zeros(length(lambda), length(theta_p));
 %% Resolución de método BEM
 for g = 1:length(theta_p)
     for h = 1:length(lambda)
-        clear Ke;
         for i = 1:length(radius)
     
-            r_i               = radius(i);        % Radio de pala
-            c_i               = chord(i);         % Cuerda de la sección
-            theta_t_i         = twist(i);         % Angulo de Pitch
-            t_i               = sectionID(i);     % Dependiendo del codigo el espesor de la función permite identificar el perfil, si tenemos el ID cargamos en t el Id y lo usamos para levantar las polares
+            r_i               = radius(i)          ;     % Radio de pala
+            c_i               = chord(i)           ;     % Cuerda de la sección
+            theta_t_i         = deg2rad( twist(i) );     % Angulo de Pitch
+            t_i               = sectionID(i)       ;     % Dependiendo del codigo el espesor de la función permite identificar el perfil, si tenemos el ID cargamos en t el Id y lo usamos para levantar las polares
             
             lambda_r(i, h, g) = lambda(h)*r_i/Rrot;    % Cociente Velocidad del aire y velocidad angular en la sección
 
             [ a(i, h, g) , aprime(i, h, g) , phi(i, h, g) , alpha(i, h, g), Cl(i, h, g), Cd(i, h, g), err(i, h, g) , kiter(i, h, g) ] = BEM_method(B, c_i, r_i, t_i, ...
-                                                                                                        lambda(h), theta_t_i, theta_p(g), Rrot, Rhub, Tol, 1, 1, factorCorreccion, aoa, clift, cdrag, cmomt );
+                                                                                                        lambda(h), theta_t_i, theta_p(g), Rrot, Rhub, Tol, 1, 1, ...
+                                                                                                        factorCorreccion, aoa, clift, cdrag, cmomt );
    
         end
 
-        Vrel(:, h, g)  = sqrt( (V0*(1-a(:, h, g))).^2 + ((lambda_r(:,h , g)*V0.*(1+aprime(:, h, g))).^2 ) );
+        Vrel(:, h, g)  = sqrt( (V0*(1-a(:, h, g))).^2 + ((lambda_r(:, h , g)*V0.*(1+aprime(:, h, g))).^2 ) );
         
         Ke             = (1/2)*rho*(Vrel(:, h, g).^2).*chord(:);
         Pn(:, h, g)    = Ke.*(Cl(:, h, g).*cos(phi(:, h, g)) + Cd(:, h, g).*sin(phi(:, h, g)));
@@ -124,14 +125,14 @@ end
 
 for i = 1:length(theta_p)
     for j= 1:length(lambda)
-        [ M(j,i) , Cp(j,i) ] = powerFactor(radius, Pt(:, j, i), omega(j), rho, V0, Rrot, B) ;
-        [ Ct(j,i) ]          = thrustFactor(radius, Pn(:, j, i), rho, V0, Rrot, B)          ;
+        [ M(j,i) , Cp(j,i) ] = powerFactorBEM(radius, Pt(:, j, i), omega(j), rho, V0, Rrot, B) ;
+        [ Ct(j,i) ]          = thrustFactorBEM(radius, Pn(:, j, i), rho, V0, Rrot, B)          ;
     end
 end
 
 % Crear una cuadrícula más densa para la interpolación
-lambda_interp  = linspace(min(lambda), max(lambda), length(lambda)*10); % Ajusta el número de puntos según tus necesidades
-theta_p_interp = linspace(min(rad2deg(theta_p)), max(rad2deg(theta_p)), length(theta_p)*10); % Ajusta el número de puntos según tus necesidades
+lambda_interp  = linspace(min(lambda), max(lambda), length(lambda)*length(theta_p)); % Ajusta el número de puntos según tus necesidades
+theta_p_interp = linspace(min(rad2deg(theta_p)), max(rad2deg(theta_p)), length(lambda)*length(theta_p)); % Ajusta el número de puntos según tus necesidades
 [lambda_interp_grid, theta_p_interp_grid] = meshgrid(lambda_interp, theta_p_interp);
 
 % Interpolar los valores de Cp en la cuadrícula densa
@@ -207,7 +208,6 @@ title(labelTitle)
 namefig4 = strcat(folderPathFigs, 'CtLambda.png') ;
 print(fig4, namefig4,'-dpng') ;
 
-
 for i = 1:length(theta_p)
     for h = 1:length(lambda)
         r_R = radius/Rrot;
@@ -261,16 +261,19 @@ for i=1:length(lambda_interp)
     Cp_max(i) = max(Cp_interp(:,i));
 end
 [maxCp, indexMaxCp] = max(Cp_max);
-max_lambda          = lambda_interp(indexMaxCp) ;
+maxLambda          = lambda_interp(indexMaxCp) ;
 plot(lambda_interp, Cp_max, '--r', 'LineWidth',2.0)
 hold on
-plot(max_lambda, maxCp, 'ok', 'LineWidth', 5.0)
+plot(maxLambda, maxCp, 'ok', 'LineWidth', 5.0)
 labx = xlabel('\lambda'); laby = ylabel('C_{p,max}');
 set(gca, 'linewidth', axislw, 'fontsize', curveFontSize ) ;
 set(labx, 'FontSize', axisFontSize); set(laby, 'FontSize', axisFontSize) ;
 title(labelTitle)
 namefig7 = strcat(folderPathFigs, 'CpMax.png') ;
 print(fig7, namefig7,'-dpng') ;
+
+k = ((1/2)*rho*pi*(Rrot^5)*(maxCp)/((maxLambda^3)))/(nGen^3) ;
+disp(['Region 2 constante=', num2str(k)])
 
 Coef_labels = {'Lift Coef', 'Drag Coef', 'Momentum Coef'} ;
 fig8 = figure(8);

@@ -1,7 +1,7 @@
 function [ A , Aprime , PHI , ALPHA, CL, CD, ERR , j ] = BEM_method (B, c , r , t, lambda, theta_t, theta_p, Rrot, Rhub, Tol , CD_CL , flag_CLCD, factorCorreccion, aoa, clift, cdrag, cmomt)
 
 %% Inicializo parámetros 
-a0       = 1/3 ;
+a0       = 0 ;
 a_prime0 = 0   ;
 eps      = 1e-3;
 erraux   = Tol + eps ;
@@ -23,7 +23,7 @@ while erraux > Tol
     
     %% Determino ángulod de velocidad relativa y ángulo de ataque
     phi(j)   = atan( (1 - a(j)) / ((( 1 + aprime(j)) * lambda_r ) + eps) ) ;%Angulo de velocidad relativa ( Radianes )
-    thetaTwist = deg2rad(theta_t) + theta_p ;
+    thetaTwist = theta_t + theta_p ;
     alpha(j) = phi(j) - thetaTwist          ;% Angulo de ataque 
     
     %% Defino coeficiente de sustentación y de arrastre según ángulo de ataque
@@ -42,9 +42,9 @@ while erraux > Tol
     
     %% Factor de Correción de Prandtl
     fTip = (B/2)*( ( Rrot - r ) / ( r * sin(phi(j))) ) ;
-    fHub = (B/2)*( ( r - Rhub ) / ( r * sin(phi(j))) ) ;
+    fHub = 1; %(B/2)*( ( r - Rhub ) / ( r * sin(phi(j))) ) ;
     FTip = (2/pi)*acos( exp( -fTip ) );
-    FHub = (2/pi)*acos( exp( -fHub ) );
+    FHub = 1; %(2/pi)*acos( exp( -fHub ) );
     F    = FTip*FHub;
     
     %% Determino a y aprime a partir de ecaución de método BEM aplicando factor de correción de Prandtl
@@ -79,7 +79,7 @@ while erraux > Tol
     end
 
     %% Cálculo de error entre pasos de iteración
-    err(j)     = max( [ (abs( aa(j) - a(j) )/((a(j)))) , (abs( aaprime(j) - aprime (j))/(aprime(j))) ] );
+    err(j)     = max( [ (abs( ( aa(j) - a(j) )/a(j) )) , (abs( (aaprime(j) - aprime (j) )/aprime(j))) ] );
     
     %% Guardo valor de error en vector auxiliar
     erraux      = err(j) ;

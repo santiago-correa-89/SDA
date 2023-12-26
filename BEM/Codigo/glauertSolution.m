@@ -4,7 +4,7 @@ function aSolve = glauertSolution(K, a)
 tol = 1e-6;
 
 % Define un valor inicial para "a" (puede ser cualquier valor inicial razonable mayor a 1/3)
-a0  = a;
+a0  = 1/3;
 
 % Inicializa la diferencia entre las iteraciones sucesivas
 dif = Inf;

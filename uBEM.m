@@ -33,9 +33,9 @@ Share   = false ; % Turn on Share wind profile
 Turbsim = true  ; % Read Turbsim file to read wind velocity in the rotor plane
 
 if Turbsim == 1
-    FileName = '90m_12mps_twr.inp.bts' ;
+    FileName = 'ejemploParte2.bts' ;
+    [Vwind, twrV0, z, y, yTwr, nz, ny, dy, dz, dt, yHub, y1, meanVhub] = readfile_BTS( FileName ) ;
 end
-
 
 % Blade geometry and mass distribution
 path       = '/Data/NREL_5MW' ;
@@ -55,10 +55,17 @@ thetaYaw    = 0*pi/180 ; % Angle must be in RADIANS!
 thetaCone   = 2.5*pi/180 ; % Angle must be in RADIANS!
 
 %initialization starts
-delta_t    = 0.05  ;
-maxtime    = 72.05  ;
-timeVector = (0:delta_t:maxtime) ;
-tIter      = length(timeVector)  ; 
+if Turbsim == 0
+    delta_t    = 0.05  ;
+    timeVector = (0:delta_t:maxtime) ;
+    tIter      = length(timeVector)  ;
+elseif Turbsim == 1
+    delta_t = dt;
+    [tLen, vLen, zGridLen, yGridLen] = size(Vwind) ;
+    maxTime    = tLen*delta_t;
+    timeVector = (0:delta_t:maxTime);
+    tIter      = length(timeVector)  ;
+end
 
 omega      = zeros(tIter, 1) ;     % Initialize angular speed rad/seg
 %omega     = 1.2671           ;
@@ -84,6 +91,9 @@ polars = { file1, file2, file3, file4, file5, file6, file7, file8 } ;
 [aoa, liftCoef, dragCoef, momCoef ] = readairfoildata_v3( polars, path ) ;
 
 %initialization variables
+Vx              = zeros(yGridLen, zGridLen,  tIter) ;
+Vy              = zeros(yGridLen, zGridLen,  tIter) ;
+Vz              = zeros(yGridLen, zGridLen,  tIter) ;
 rGx             = zeros(ni, nblade,  tIter) ;
 rGy             = zeros(ni, nblade,  tIter) ;
 rGz             = zeros(ni, nblade,  tIter) ;
@@ -140,13 +150,12 @@ theta_w(1,3) = theta_w(1)+4*pi/3 ; % Angle must be in RADIANS!
 %Initialization ends
 %Main loop starts in time domain
 
-for nt = 2:length(timeVector)
+for nt = 2:length(timeVector)-1
     timeVector(nt)
     if Turbsim == 1
-        [V0g, twrV0, z, y, yTwr, nz, ny, dy, dz, dt, yHub, y1, meanVhub] = readfile_BTS( FileName ) ;
         % Generate velocity componente in turbsim system for nt
         % time step
-        Vx = squeeze( V0g(nt,1,:,:) ) ; Vy = squeeze( V0g(nt,2,:,:) ) ; Vz = squeeze( V0g(nt,3,:,:) );
+        Vx(:,:, nt) = squeeze( Vwind(nt,1,:,:) ) ; Vy(:,:, nt) = squeeze( Vwind(nt,2,:,:) ) ; Vz(:,:, nt) = squeeze( Vwind(nt,3,:,:) );
         % Generate grid vector 
         % Creat a grid with the Y and Z coordinates of the rotor
         % plane output of the TurbSim
@@ -206,9 +215,9 @@ for nt = 2:length(timeVector)
                 V0g   = uniWind( t, rGy(j, i, nt), Vhub ) ;            % wind velocity in global coordinates uniform wind
             elseif Turbsim == 1
                 % Interpolate coordinates velocity for actual section location
-                V0x(j, i, nt) = interp2( Ygrid, Zgrid, Vx, rGy(j, i, nt) , rGz(j, i, nt) , 'linear' ); % Puedes ajustar el método de interpolación
-                V0y(j, i, nt) = interp2( Ygrid, Zgrid, Vy, rGy(j, i, nt) , rGz(j, i, nt) , 'linear' ); % Puedes ajustar el método de interpolación
-                V0z(j, i, nt) = interp2( Ygrid, Zgrid, Vz, rGy(j, i, nt) , rGz(j, i, nt) , 'linear' ); % Puedes ajustar el método de interpolación
+                V0x(j, i, nt) = interp2( Ygrid, Zgrid, Vx(:,:, nt), rGy(j, i, nt) , rGz(j, i, nt) , 'linear' ); % Puedes ajustar el método de interpolación
+                V0y(j, i, nt) = interp2( Ygrid, Zgrid, Vy(:,:, nt), rGy(j, i, nt) , rGz(j, i, nt) , 'linear' ); % Puedes ajustar el método de interpolación
+                V0z(j, i, nt) = interp2( Ygrid, Zgrid, Vz(:,:, nt), rGy(j, i, nt) , rGz(j, i, nt) , 'linear' ); % Puedes ajustar el método de interpolación
                 V0g = [ V0x(j, i, nt); V0y(j, i, nt); V0z(j, i, nt) ] ;
                 Egl = [ 1 0 0 ; 0 0 -1; 0 1 0];
                 V0g = Egl*V0g ;
@@ -348,7 +357,7 @@ startPlot = 1;
 tStep     = 0.05 ;
 lw = 2.0 ; ms = 10; plotfontsize = 22 ; spanPlotTime = 1 ;
 axislw = 2 ; axisFontSize = 20 ; legendFontSize = 15 ; curveFontSize = 15 ; 
-folderPathFigs = './figs/uBEM/Outputs/' ;
+folderPathFigs = './figs/uBEM/Outputs/Turbsim' ;
 mkdir(folderPathFigs) 
 
 fig1 = figure(1);
@@ -421,4 +430,4 @@ title(labelTitle)
 namefig5 = strcat(folderPathFigs, ['controlError=', num2str(Vhub),'.jpg'] ) ;
 print(fig5, namefig5,'-dpng') ;
 
-clear fig1; clear fig2; clear fig3; clear fig4; clear fig5;
+clear fig1; clear fig2; clear fig3; clear fig4; clear fig5; clear fig6;
