@@ -59,8 +59,8 @@ if fid > 0
     asciiINT = fread( fid, nchar, 'int8' ); % the ASCII integer representation of the character string
     asciiSTR = char( asciiINT' );
 
-    disp( ['Reading from the file ' FileName ' with heading: ' ] );
-    disp( ['   "' asciiSTR '".' ] ) ;
+    %disp( ['Reading from the file ' FileName ' with heading: ' ] );
+    %disp( ['   "' asciiSTR '".' ] ) ;
 
     %-------------------------        
     % get the grid information
@@ -126,8 +126,8 @@ else
 end
 
 
-y = [0:ny-1]*dy - dy*(ny-1)/2;
-z = [0:nz-1]*dz + z1;
-zTwr = z1 - [0:ntwr-1]*dz;
+y = (0:ny-1)*dy - dy*(ny-1)/2;
+z = (0:nz-1)*dz + z1;
+zTwr = z1 - (0:ntwr-1)*dz;
 
 return;

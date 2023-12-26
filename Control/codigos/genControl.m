@@ -3,15 +3,6 @@ function [ genTrq, lastTimeGC, genOmegaF ] = genControl( nGen, rotOmega, bladePi
 deltaTime  = t1p - lastTimeGC;
 genOmega   = nGen*rotOmega;  % actual generator speed
 
-
-if deltaTime < 0.05
-
-    genOmegaF  = genOmegafTP;
-    lastTimeGC = lastTimeGC ;
-    genTrq     = lastGenTrq ;
-
-elseif deltaTime >= 0.05
-
     %% Filter the generator speed
     cornerFreq = 1.570796                                     ; % Frequency parameter of filter
     alpha      = exp( ( deltaTime )*cornerFreq )              ; % Constant parameter of filter
@@ -71,5 +62,4 @@ elseif deltaTime >= 0.05
     genTrq  = lastGenTrq + trqRate * deltaTime;                  % Saturate the command using the torque rate limit
     % Reset the values of LastTimeVS and LastGenTrq to the current values:
     lastTimeGC      = t1p;
-end
 end

@@ -1,4 +1,4 @@
-clear all;
+clear all ;
 close all ;
 clc ;
 addpath( genpath( [ pwd '/Control'] ) );
@@ -27,7 +27,15 @@ n      = 1/7       ; % Wind share potential coef
 DWM   = false; % Turn on Dynamic Wake Model
 DSM   = false; % Turn on Dynamic Stall Model
 SDM   = false; % Turn on Stall Delay Model
-Share = false ; % Turn on Share wind profile
+% Wind Flags
+Uniform = false ; % Turn on uniform wind profile with X direction
+Share   = false ; % Turn on Share wind profile
+Turbsim = true  ; % Read Turbsim file to read wind velocity in the rotor plane
+
+if Turbsim == 1
+    FileName = '90m_12mps_twr.inp.bts' ;
+end
+
 
 % Blade geometry and mass distribution
 path       = '/Data/NREL_5MW' ;
@@ -47,8 +55,8 @@ thetaYaw    = 0*pi/180 ; % Angle must be in RADIANS!
 thetaCone   = 2.5*pi/180 ; % Angle must be in RADIANS!
 
 %initialization starts
-delta_t    = 0.1  ;
-maxtime    = 500  ;
+delta_t    = 0.05  ;
+maxtime    = 72.05  ;
 timeVector = (0:delta_t:maxtime) ;
 tIter      = length(timeVector)  ; 
 
@@ -79,6 +87,9 @@ polars = { file1, file2, file3, file4, file5, file6, file7, file8 } ;
 rGx             = zeros(ni, nblade,  tIter) ;
 rGy             = zeros(ni, nblade,  tIter) ;
 rGz             = zeros(ni, nblade,  tIter) ;
+V0x             = zeros(ni, nblade,  tIter) ;
+V0y             = zeros(ni, nblade,  tIter) ;
+V0z             = zeros(ni, nblade,  tIter) ;
 wxqs            = zeros(ni, nblade,  tIter) ;
 wzqs            = zeros(ni, nblade,  tIter) ;
 wxint           = zeros(ni, nblade,  tIter) ;
@@ -130,6 +141,17 @@ theta_w(1,3) = theta_w(1)+4*pi/3 ; % Angle must be in RADIANS!
 %Main loop starts in time domain
 
 for nt = 2:length(timeVector)
+    timeVector(nt)
+    if Turbsim == 1
+        [V0g, twrV0, z, y, yTwr, nz, ny, dy, dz, dt, yHub, y1, meanVhub] = readfile_BTS( FileName ) ;
+        % Generate velocity componente in turbsim system for nt
+        % time step
+        Vx = squeeze( V0g(nt,1,:,:) ) ; Vy = squeeze( V0g(nt,2,:,:) ) ; Vz = squeeze( V0g(nt,3,:,:) );
+        % Generate grid vector 
+        % Creat a grid with the Y and Z coordinates of the rotor
+        % plane output of the TurbSim
+        [ Ygrid, Zgrid ] = meshgrid(y , z);
+    end
     
     if timeVector(nt) >= 10
         DWM   = true ;  % Turn on Dynamic Wake Model
@@ -180,8 +202,16 @@ for nt = 2:length(timeVector)
             
             if Share == 1
                 V0g   = shareWind(t, rGy(j, i, nt), Vhub, Hhub(2), n); % wind velocity in global coordinates share wind
-            else
+            elseif Uniform == 1
                 V0g   = uniWind( t, rGy(j, i, nt), Vhub ) ;            % wind velocity in global coordinates uniform wind
+            elseif Turbsim == 1
+                % Interpolate coordinates velocity for actual section location
+                V0x(j, i, nt) = interp2( Ygrid, Zgrid, Vx, rGy(j, i, nt) , rGz(j, i, nt) , 'linear' ); % Puedes ajustar el método de interpolación
+                V0y(j, i, nt) = interp2( Ygrid, Zgrid, Vy, rGy(j, i, nt) , rGz(j, i, nt) , 'linear' ); % Puedes ajustar el método de interpolación
+                V0z(j, i, nt) = interp2( Ygrid, Zgrid, Vz, rGy(j, i, nt) , rGz(j, i, nt) , 'linear' ); % Puedes ajustar el método de interpolación
+                V0g = [ V0x(j, i, nt); V0y(j, i, nt); V0z(j, i, nt) ] ;
+                Egl = [ 1 0 0 ; 0 0 -1; 0 1 0];
+                V0g = Egl*V0g ;
             end
 
             V0l   = a14*V0g ;                                    % convert wind velocity in global coordinate to local blade coordinates            
@@ -309,7 +339,7 @@ for nt = 2:length(timeVector)
         if Vhub >= 11.4
             [ thetaPitch(nt+1, :), lastTimePC(nt+1, 1), speedError(nt+1,1), integError(nt+1, 1) ] = pitchControl( nGen, omega(nt, 1), thetaPitch(nt, :), integError(nt, 1), lastTimePC(nt, 1), timeVector(nt), Vhub ) ;
         end
-        omega(nt+1, 1)  =  omega(nt, 1) + ( ( rotTrq(nt, 1) - (trqGen(nt, 1)*nGen) )/I ) * delta_t 
+        omega(nt+1, 1)  =  omega(nt, 1) + ( ( rotTrq(nt, 1) - (trqGen(nt, 1)*nGen) )/I ) * delta_t ;
     end
 end  %end iteration(timesim)
 
