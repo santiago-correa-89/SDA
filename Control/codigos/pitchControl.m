@@ -1,4 +1,4 @@
-function [ bladePitchOut, lastTimePC, speedError, integError ] = pitchControl( nGen, rotOmega, bladePitch, integError, lastTimePC, t1p, V0 )      
+function [ bladePitchOut, lastTimePC, speedError, integError ] = pitchControl( nGen, rotOmega, bladePitch, integError, lastTimePC, t1p )      
 
 bladePitchOut = zeros(1,3) ;
 bladePitchRad = deg2rad(bladePitch) ;

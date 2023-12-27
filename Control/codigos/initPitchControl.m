@@ -1,4 +1,4 @@
-function [ bladePitchCnt, lastTimePC, speedError, integError ] = initPitchControl( nGen, omega, bladePitch, integError, lastTimePC, t1, V0 )      
+function [ bladePitchCnt, lastTimePC, speedError, integError ] = initPitchControl( nGen, omega, bladePitch, integError, lastTimePC, t1)      
 
 bladePitchRad = deg2rad(bladePitch) ;
 

@@ -19,10 +19,6 @@ Irot   =  115926     ; % Rotor inertia
 Iblade =  11776047   ; % Blade inertia in the root 
 I      = nGen*nGen*Igen + Irot + 3*Iblade ; % Total inertia
 
-% Wind initialization 
-Vhub   = 20      ; % Wind velocity at hub height
-n      = 1/7       ; % Wind share potential coef
-
 % Flags
 DWM   = false; % Turn on Dynamic Wake Model
 DSM   = false; % Turn on Dynamic Stall Model
@@ -32,9 +28,13 @@ Uniform = false ; % Turn on uniform wind profile with X direction
 Share   = false ; % Turn on Share wind profile
 Turbsim = true  ; % Read Turbsim file to read wind velocity in the rotor plane
 
+% Wind initialization 
 if Turbsim == 1
     FileName = 'ejemploParte2.bts' ;
     [Vwind, twrV0, z, y, yTwr, nz, ny, dy, dz, dt, yHub, y1, meanVhub] = readfile_BTS( FileName ) ;
+else
+    Vhub   = 20      ; % Wind velocity at hub height
+    n      = 1/7       ; % Wind share potential coef
 end
 
 % Blade geometry and mass distribution
@@ -65,6 +65,10 @@ elseif Turbsim == 1
     maxTime    = tLen*delta_t;
     timeVector = (0:delta_t:maxTime);
     tIter      = length(timeVector)  ;
+    % Generate grid vector 
+    % Creat a grid with the Y and Z coordinates of the rotor
+    % plane output of the TurbSim
+    [ Ygrid, Zgrid ] = meshgrid(y , z);
 end
 
 omega      = zeros(tIter, 1) ;     % Initialize angular speed rad/seg
@@ -94,6 +98,9 @@ polars = { file1, file2, file3, file4, file5, file6, file7, file8 } ;
 Vx              = zeros(yGridLen, zGridLen,  tIter) ;
 Vy              = zeros(yGridLen, zGridLen,  tIter) ;
 Vz              = zeros(yGridLen, zGridLen,  tIter) ;
+Vhub            = zeros( tIter ) ;
+Vyhub           = zeros( tIter ) ;
+Vzhub           = zeros( tIter ) ;
 rGx             = zeros(ni, nblade,  tIter) ;
 rGy             = zeros(ni, nblade,  tIter) ;
 rGz             = zeros(ni, nblade,  tIter) ;
@@ -126,6 +133,7 @@ lastTimePC        = zeros(tIter, 1) ;
 
 % Outputs
 theta_w     = zeros(tIter, nblade) ;
+aeroPower   = zeros(tIter, 1) ;
 powerOutput = zeros(tIter, 1) ;
 totalThrust = zeros(tIter, 1) ;
 rotTrq      = zeros(tIter, 1) ;
@@ -145,7 +153,7 @@ theta_w(1,3) = theta_w(1)+4*pi/3 ; % Angle must be in RADIANS!
 %Init pitch control parameters
 
     [ thetaPitch(1,:), lastTimePC(1,1), ~, integError(1,1) ] = initPitchControl( nGen, omega(1, 1), thetaPitch(1,:), integError(1,1), ...
-                                                            lastTimePC(1,1), timeVector(1,1), Vhub );
+                                                            lastTimePC(1,1), timeVector(1,1) );
 
 %Initialization ends
 %Main loop starts in time domain
@@ -156,10 +164,11 @@ for nt = 2:length(timeVector)-1
         % Generate velocity componente in turbsim system for nt
         % time step
         Vx(:,:, nt) = squeeze( Vwind(nt,1,:,:) ) ; Vy(:,:, nt) = squeeze( Vwind(nt,2,:,:) ) ; Vz(:,:, nt) = squeeze( Vwind(nt,3,:,:) );
-        % Generate grid vector 
-        % Creat a grid with the Y and Z coordinates of the rotor
-        % plane output of the TurbSim
-        [ Ygrid, Zgrid ] = meshgrid(y , z);
+        % Hub velocity
+        yHub = round(yGridLen/2);  zHub = round(zGridLen/2);
+        Vhub(nt)  = Vwind(nt, 1, yHub, zHub) ;
+        Vyhub(nt) = Vwind(nt, 2, yHub, zHub) ;
+        Vzhub(nt) = Vwind(nt, 3, yHub, zHub) ;
     end
     
     if timeVector(nt) >= 10
@@ -170,7 +179,7 @@ for nt = 2:length(timeVector)-1
 
     if nt == 2
             [ thetaPitch(nt,:), lastTimePC(nt,1), ~, integError(nt,1) ] = initPitchControl( nGen, omega(nt, 1), thetaPitch(nt-1,:), integError(nt-1,1), ...
-                                                            lastTimePC(nt-1,1), timeVector(nt), Vhub );
+                                                            lastTimePC(nt-1,1), timeVector(nt) );
     end
      
     % Updating blade azimuthel positions
@@ -336,6 +345,7 @@ for nt = 2:length(timeVector)-1
             thrust(nt,nblade) = thrustFactor( radius(:), px(:,nblade,nt) ) ;
     end
 
+    aeroPower(nt, 1)   = ( moment(nt, 1) + moment(nt, 2) + moment(nt, 3) )*omega(nt,1); 
     powerOutput(nt, 1) = ( moment(nt, 1) + moment(nt, 2) + moment(nt, 3) )*omega(nt,1)*genEff; %omega(nt);
     totalThrust(nt, 1) = (thrust(nt, 1) + thrust(nt, 2) + thrust(nt, 3))/1000;
     rotTrq(nt, 1)      = moment(nt, 1) + moment(nt, 2) + moment(nt, 3);
@@ -345,19 +355,18 @@ for nt = 2:length(timeVector)-1
                                trqGen(nt-1, 1), genOmegaF(nt-1, 1), lastTimeGC(nt-1, 1), timeVector(nt) ) ;
    
     if nt <= length(timeVector) - 1 
-        if Vhub >= 11.4
-            [ thetaPitch(nt+1, :), lastTimePC(nt+1, 1), speedError(nt+1,1), integError(nt+1, 1) ] = pitchControl( nGen, omega(nt, 1), thetaPitch(nt, :), integError(nt, 1), lastTimePC(nt, 1), timeVector(nt), Vhub ) ;
-        end
+        [ thetaPitch(nt+1, :), lastTimePC(nt+1, 1), speedError(nt+1,1), integError(nt+1, 1) ] = pitchControl( nGen, omega(nt, 1), thetaPitch(nt, :), integError(nt, 1), lastTimePC(nt, 1), timeVector(nt) ) ;
         omega(nt+1, 1)  =  omega(nt, 1) + ( ( rotTrq(nt, 1) - (trqGen(nt, 1)*nGen) )/I ) * delta_t ;
     end
 end  %end iteration(timesim)
 
 %
+studyCase = 'TurbSimParte1';
 startPlot = 1; 
 tStep     = 0.05 ;
 lw = 2.0 ; ms = 10; plotfontsize = 22 ; spanPlotTime = 1 ;
 axislw = 2 ; axisFontSize = 20 ; legendFontSize = 15 ; curveFontSize = 15 ; 
-folderPathFigs = './figs/uBEM/Outputs/Turbsim' ;
+folderPathFigs = './figs/uBEM/Outputs/Turbsim/Parte1' ;
 mkdir(folderPathFigs) 
 
 fig1 = figure(1);
@@ -370,21 +379,21 @@ labx=xlabel('Time (s)'); laby=ylabel('Power (W)');
 set(gca, 'linewidth', axislw, 'fontsize', curveFontSize ) ;
 set(labx, 'FontSize', axisFontSize); set(laby, 'FontSize', axisFontSize) ;
 title(labelTitle)
-namefig1 = strcat(folderPathFigs, [ 'rotorPower=', num2str(Vhub),'.jpg' ]) ;
+namefig1 = strcat(folderPathFigs, [ '/rotorPower_', studyCase,'.jpg' ]) ;
 print(fig1, namefig1,'-dpng') ;
 
 fig2 = figure(2);
-labelTitle =  ' Momentum' ;
+labelTitle =  ' Aerodynamic Power' ;
 hold on; grid on
 plot(timeVector(startPlot:end-1), rotTrq(startPlot:end-1)', 'r-', 'LineWidth',lw,'markersize',ms )
 hold on
-plot(timeVector(startPlot:end-1), nGen*trqGen(startPlot:end-1)', 'b-', 'LineWidth',lw,'markersize',ms )
-legend('Rotor Momentum', 'Generator Momentum', 'location','Best')
+plot(timeVector(startPlot:end-1), aeroPower(startPlot:end-1)', 'b-', 'LineWidth',lw,'markersize',ms )
+legend('Rotor Momentum', 'Aerodynamic power', 'location','Best')
 labx=xlabel('Time (s)'); laby=ylabel('Momentum (Nm)');
 set(gca, 'linewidth', axislw, 'fontsize', curveFontSize ) ;
 set(labx, 'FontSize', axisFontSize); set(laby, 'FontSize', axisFontSize) ;
 title(labelTitle)
-namefig2 = strcat(folderPathFigs, ['rotorMomentum=', num2str(Vhub),'.jpg']) ;
+namefig2 = strcat(folderPathFigs, ['/aeroDynamicOutput=', studyCase,'.jpg']) ;
 print(fig2, namefig2,'-dpng') ;
 
 fig3 = figure(3);
@@ -397,23 +406,18 @@ labx=xlabel( 'Time (s)' ); laby=ylabel(' Velocidad angular rotor (rad/seg) ');
 set(gca, 'linewidth', axislw, 'fontsize', curveFontSize ) ;
 set(labx, 'FontSize', axisFontSize); set(laby, 'FontSize', axisFontSize) ;
 title(labelTitle)
-namefig3 = strcat(folderPathFigs, ['omegaRotor=', num2str(Vhub),'.jpg'] ) ;
+namefig3 = strcat(folderPathFigs, ['/omegaRotor=', studyCase,'.jpg'] ) ;
 print(fig3, namefig3,'-dpng') ;
 
 fig4 = figure(4);
 hold on; grid on
-labelTitle = 'Variación Ángulo de Pitch';
+labelTitle = 'Variación Ángulo de Pitch Pala 1';
 plot(timeVector(startPlot:end-1), thetaPitch(startPlot:end-1, 1)', 'r-', 'LineWidth', lw,'markersize',ms )
-hold on
-plot(timeVector(startPlot:end-1), thetaPitch(startPlot:end-1, 2)', 'g-', 'LineWidth', lw,'markersize',ms )
-hold on
-plot(timeVector(startPlot:end-1), thetaPitch(startPlot:end-1, 3)', 'b-', 'LineWidth', lw,'markersize',ms )
-labx=xlabel( 'Time (s)' ); laby=ylabel(' \theta_(pitch) (degrees) ');
-legend('Blade 1', 'Blade 2', 'Blade 3', 'location','Best')
+labx=xlabel( 'Time (s)' ); laby=ylabel(' \theta_{pitch} (degrees) ');
 set(gca, 'linewidth', axislw, 'fontsize', curveFontSize ) ;
 set(labx, 'FontSize', axisFontSize); set(laby, 'FontSize', axisFontSize) ;
 title(labelTitle)
-namefig4 = strcat(folderPathFigs, ['pitchControl_Vhub=', num2str(Vhub),'.jpg'] ) ;
+namefig4 = strcat(folderPathFigs, ['/pitchControl_Vhub=', studyCase,'.jpg'] ) ;
 print(fig4, namefig4,'-dpng') ;
 
 fig5 = figure(5);
@@ -427,7 +431,33 @@ labx=xlabel( 'Time (s)' ); laby=ylabel(' Integral error ');
 set(gca, 'linewidth', axislw, 'fontsize', curveFontSize ) ;
 set(labx, 'FontSize', axisFontSize); set(laby, 'FontSize', axisFontSize) ;
 title(labelTitle)
-namefig5 = strcat(folderPathFigs, ['controlError=', num2str(Vhub),'.jpg'] ) ;
+namefig5 = strcat(folderPathFigs, ['/controlError=', studyCase,'.jpg'] ) ;
 print(fig5, namefig5,'-dpng') ;
 
-clear fig1; clear fig2; clear fig3; clear fig4; clear fig5; clear fig6;
+fig6 = figure(6);
+hold on; grid on
+labelTitle = 'Velocidad de viento en hub';
+plot(timeVector(startPlot:end-1), Vhub(startPlot:end-1, 1), 'r--', 'LineWidth', lw,'markersize',ms )
+hold on
+plot(timeVector(startPlot:end-1), Vyhub(startPlot:end-1, 1), 'b--', 'LineWidth', lw,'markersize',ms )
+hold on
+plot(timeVector(startPlot:end-1), Vzhub(startPlot:end-1, 1), 'k--', 'LineWidth', lw,'markersize',ms )
+labx=xlabel( 'Time (s)' ); laby=ylabel(' Velocidad (m/s) ');
+set(gca, 'linewidth', axislw, 'fontsize', curveFontSize ) ;
+set(labx, 'FontSize', axisFontSize); set(laby, 'FontSize', axisFontSize) ;
+title(labelTitle)
+namefig6 = strcat(folderPathFigs, ['/hubVelocidy=', studyCase,'.jpg'] ) ;
+print(fig6, namefig6,'-dpng') ;
+
+fig7 = figure(7);
+hold on; grid on
+labelTitle = 'Fuerza de empuje sobre el rotor';
+plot(timeVector(startPlot:end-1), totalThrust(startPlot:end-1, 1)', 'r-o', 'LineWidth', lw,'markersize',ms )
+labx=xlabel( 'Time (s)' ); laby=ylabel(' Fuerza (N) ');
+set(gca, 'linewidth', axislw, 'fontsize', curveFontSize ) ;
+set(labx, 'FontSize', axisFontSize); set(laby, 'FontSize', axisFontSize) ;
+title(labelTitle)
+namefig7 = strcat(folderPathFigs, ['/totalThrust=', studyCase,'.jpg'] ) ;
+print(fig7, namefig7,'-dpng') ;
+
+clear fig1; clear fig2; clear fig3; clear fig4; clear fig5; clear fig6; clear fig7;
