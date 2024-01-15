@@ -32,13 +32,13 @@ Share = false; % Turn on Share wind profile
 
 % Blade geometry and mass distribution
 path       = '/Data/NREL_5MW' ;
-file       = '/Polars/NRELOffshrBsline5MWbladeDataV1.txt';
+file       = '/Polars/NRELOffshrBsline5MWbladeDataV2.txt';
 bladeData   = readtable(fullfile(path, file));
-radius      = bladeData.RNodes    ;
-twist       = bladeData.AeroTwst  ; % Angle in DEGRESS
-chord       = bladeData.Chord     ;
-sectionID   = bladeData.NFoil     ;
-ni          = max(size(radius))   ;
+radius      = bladeData.BlSpn    ;
+twist       = bladeData.BlTwist  ; % Angle in DEGRESS
+chord       = bladeData.BlChord  ;
+sectionID   = bladeData.BlAFID   ;
+ni          = max(size(radius))  ;
 
 Ytower      = [0   , Ht , 0 ]' ;
 Xhub        = [-Dh , 0   , 0 ]' ;
@@ -126,7 +126,7 @@ for vVec = 1:vVal
 
     %Init pitch control parameters
         [ thetaPitch(1,:,vVec), lastTimePC(1,vVec), speedError(1,vVec), integError(1,vVec) ] = initPitchControl( nGen, omega(1, vVec), thetaPitch(1,:,vVec), integError(1,vVec), ...
-                                                            lastTimePC(1,vVec), timeVector(1,vVec), vVector(vVal) );
+                                                            lastTimePC(1,vVec), timeVector(1,vVec) );
     
     for nt = 2:length(timeVector)
         if timeVector(nt) >= 10
@@ -137,7 +137,7 @@ for vVec = 1:vVal
     
         if nt == 2
                 [ thetaPitch(nt,:, vVec), lastTimePC(nt,vVec), speedError(nt,vVec), integError(nt,vVec) ] = initPitchControl( nGen, omega(nt, vVec), thetaPitch(nt-1,:,vVec), integError(nt-1,vVec), ...
-                                                                lastTimePC(nt-1,vVec), timeVector(nt), vVector(vVec) );
+                                                                lastTimePC(nt-1,vVec), timeVector(nt) );
         end
          
         % Updating blade azimuthel positions
@@ -306,7 +306,7 @@ for vVec = 1:vVal
         if nt <= length(timeVector) - 1
             if vVector(vVec) >= 11.4
                 [ thetaPitch(nt+1, :, vVec), lastTimePC(nt+1, vVec), speedError(nt+1, vVec), integError(nt+1, vVec) ] = pitchControl( nGen, omega(nt, vVec), thetaPitch(nt, :, vVec), ...
-                    integError(nt, vVec), lastTimePC(nt, vVec), timeVector(nt), vVector(vVec) ) ;
+                    integError(nt, vVec), lastTimePC(nt, vVec), timeVector(nt) ) ;
             end
                 omega(nt+1, vVec)  =  omega(nt, vVec) + ( (rotTrq(nt, vVec) - (genTrq(nt, vVec)*nGen))/I ) * (delta_t) ;
         end
@@ -322,7 +322,7 @@ startPlot = 1;
 tStep     = 0.1 ;
 lw = 2.0 ; ms = 10; plotfontsize = 22 ; spanPlotTime = 1 ;
 axislw = 2 ; axisFontSize = 20 ; legendFontSize = 15 ; curveFontSize = 15 ; 
-folderPathFigs = './figs/uBEM/General' ;
+folderPathFigs = './figs/uBEM/General/Blade2' ;
 mkdir(folderPathFigs) 
 
 fig1 = figure(1);

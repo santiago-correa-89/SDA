@@ -62,7 +62,7 @@ Rrot    = 126/2 ; % Radio del rotor
 
 theta_p = deg2rad(-5:1:5)' ; % Vector de Ángulo de Twist de la las secciones en radianes
 
-V0     = 12 ;              % m/s
+V0     = 11.4 ;             % m/s
 lambda = (4:1:12)';         % Tip speed ratio
 omega  = (lambda*V0/Rrot) ; % Velocidad angular
 B      = 3;                 % Número de palas
@@ -140,7 +140,7 @@ Cp_interp = griddata(rad2deg(theta_p), lambda , Cp, theta_p_interp_grid, lambda_
 Ct_interp = griddata(rad2deg(theta_p), lambda , Ct, theta_p_interp_grid, lambda_interp_grid, 'cubic'); % Puedes ajustar el método de interpolación
 
 % Plot results
-folderPathFigs = './figs/NREL_5MW/' ;
+folderPathFigs = './figs/NREL_5MW/Blade1' ;
 mkdir(folderPathFigs) ;
 
 lw = 2.0 ; ms = 10; plotfontsize = 22 ; spanPlotTime = 1 ;
@@ -155,7 +155,7 @@ labx = xlabel('\lambda'); laby = ylabel('\theta_p (grados)');
 set(gca, 'linewidth', axislw, 'fontsize', curveFontSize ) ;
 set(labx, 'FontSize', axisFontSize); set(laby, 'FontSize', axisFontSize) ;
 title(labelTitle)
-namefig1 = strcat(folderPathFigs, 'superficeCp.png') ;
+namefig1 = strcat(folderPathFigs, '/superficeCp.png') ;
 print(fig1, namefig1,'-dpng') ;
 
 % Crear un gráfico de superficie suavizado con contourf
@@ -167,7 +167,7 @@ labx = xlabel('\lambda'); laby = ylabel('\theta_p (grados)');
 set(gca, 'linewidth', axislw, 'fontsize', curveFontSize ) ;
 set(labx, 'FontSize', axisFontSize); set(laby, 'FontSize', axisFontSize) ;
 title(labelTitle)
-namefig2 = strcat(folderPathFigs, 'superficeCt.png') ;
+namefig2 = strcat(folderPathFigs, '/superficeCt.png') ;
 print(fig2, namefig2,'-dpng') ;
 
 
@@ -188,7 +188,7 @@ set(gca, 'linewidth', axislw, 'fontsize', curveFontSize ) ;
 set(labx, 'FontSize', axisFontSize); set(laby, 'FontSize', axisFontSize) ;
 legend(theta_p_labels, 'Location', 'Best'); % Ajusta la ubicación de la leyenda según tus necesidades
 title(labelTitle)
-namefig3 = strcat(folderPathFigs, 'CpLambda.png') ;
+namefig3 = strcat(folderPathFigs, '/CpLambda.png') ;
 print(fig3, namefig3,'-dpng') ;
 
 fig4 = figure(4);
@@ -205,7 +205,7 @@ set(gca, 'linewidth', axislw, 'fontsize', curveFontSize ) ;
 set(labx, 'FontSize', axisFontSize); set(laby, 'FontSize', axisFontSize) ;
 legend(theta_p_labels, 'Location', 'Best'); % Ajusta la ubicación de la leyenda según tus necesidades
 title(labelTitle)
-namefig4 = strcat(folderPathFigs, 'CtLambda.png') ;
+namefig4 = strcat(folderPathFigs, '/CtLambda.png') ;
 print(fig4, namefig4,'-dpng') ;
 
 for i = 1:length(theta_p)
@@ -231,7 +231,7 @@ for i = 1:length(theta_p)
                 xlabel('r/R')
                 ylabel('AoA (Grados)')
                 legend(lambda_labels, 'Location', 'Best'); % Ajusta la ubicación de la leyenda según tus necesidades
-                namefig5 = strcat(folderPathFigs, 'props.png') ;
+                namefig5 = strcat(folderPathFigs, '/props.png') ;
                 print(fig5, namefig5,'-dpng') ;
 
 
@@ -247,7 +247,7 @@ for i = 1:length(theta_p)
                 xlabel('r/R')
                 ylabel('Fuerza Tangencial (N)')
                 legend(lambda_labels, 'Location', 'Best'); % Ajusta la ubicación de la leyenda según tus necesidades
-                namefig6 = strcat(folderPathFigs, 'forces.png') ;
+                namefig6 = strcat(folderPathFigs, '/forces.png') ;
                 print(fig6, namefig6,'-dpng') ;
             end
         end
@@ -269,7 +269,7 @@ labx = xlabel('\lambda'); laby = ylabel('C_{p,max}');
 set(gca, 'linewidth', axislw, 'fontsize', curveFontSize ) ;
 set(labx, 'FontSize', axisFontSize); set(laby, 'FontSize', axisFontSize) ;
 title(labelTitle)
-namefig7 = strcat(folderPathFigs, 'CpMax.png') ;
+namefig7 = strcat(folderPathFigs, '/CpMax.png') ;
 print(fig7, namefig7,'-dpng') ;
 
 k = ((1/2)*rho*pi*(Rrot^5)*(maxCp)/((maxLambda^3)))/(nGen^3) ;
@@ -289,7 +289,7 @@ legend(Coef_labels, 'Location', 'Best'); % Ajusta la ubicación de la leyenda se
 set(gca, 'linewidth', axislw, 'fontsize', curveFontSize ) ;
 set(labx, 'FontSize', axisFontSize); set(laby, 'FontSize', axisFontSize) ;
 title(labelTitle)
-namefig8 = strcat(folderPathFigs, 'coefDU21_A17.png') ;
+namefig8 = strcat(folderPathFigs, '/coefDU21_A17.png') ;
 print(fig8, namefig8,'-dpng') ;
 
 fig9 = figure(9);
@@ -305,7 +305,7 @@ legend(Coef_labels, 'Location', 'Best'); % Ajusta la ubicación de la leyenda se
 set(gca, 'linewidth', axislw, 'fontsize', curveFontSize ) ;
 set(labx, 'FontSize', axisFontSize); set(laby, 'FontSize', axisFontSize) ;
 title(labelTitle)
-namefig9 = strcat(folderPathFigs, 'coefDU25_A17.png') ;
+namefig9 = strcat(folderPathFigs, '/coefDU25_A17.png') ;
 print(fig9, namefig9,'-dpng') ;
 
 fig10 = figure(10);
@@ -321,7 +321,7 @@ legend(Coef_labels, 'Location', 'Best'); % Ajusta la ubicación de la leyenda se
 set(gca, 'linewidth', axislw, 'fontsize', curveFontSize ) ;
 set(labx, 'FontSize', axisFontSize); set(laby, 'FontSize', axisFontSize) ;
 title(labelTitle)
-namefig10 = strcat(folderPathFigs, 'coefDU30_A17.png') ;
+namefig10 = strcat(folderPathFigs, '/coefDU30_A17.png') ;
 print(fig10, namefig10,'-dpng') ;
 
 fig11 = figure(11);
@@ -337,7 +337,7 @@ legend(Coef_labels, 'Location', 'Best'); % Ajusta la ubicación de la leyenda se
 set(gca, 'linewidth', axislw, 'fontsize', curveFontSize ) ;
 set(labx, 'FontSize', axisFontSize); set(laby, 'FontSize', axisFontSize) ;
 title(labelTitle)
-namefig11 = strcat(folderPathFigs, 'coefDU35_A17.png') ;
+namefig11 = strcat(folderPathFigs, '/coefDU35_A17.png') ;
 print(fig11, namefig11,'-dpng') ;
 
 fig12 = figure(12);
@@ -353,7 +353,7 @@ legend(Coef_labels, 'Location', 'Best'); % Ajusta la ubicación de la leyenda se
 set(gca, 'linewidth', axislw, 'fontsize', curveFontSize ) ;
 set(labx, 'FontSize', axisFontSize); set(laby, 'FontSize', axisFontSize) ;
 title(labelTitle)
-namefig12 = strcat(folderPathFigs, 'coefD40_A17.png') ;
+namefig12 = strcat(folderPathFigs, '/coefD40_A17.png') ;
 print(fig12, namefig12,'-dpng') ;
 
 fig13 = figure(13);
@@ -369,7 +369,7 @@ legend(Coef_labels, 'Location', 'Best'); % Ajusta la ubicación de la leyenda se
 set(gca, 'linewidth', axislw, 'fontsize', curveFontSize ) ;
 set(labx, 'FontSize', axisFontSize); set(laby, 'FontSize', axisFontSize) ;
 title(labelTitle)
-namefig13 = strcat(folderPathFigs, 'coefNACA64_A17.png') ;
+namefig13 = strcat(folderPathFigs, '/coefNACA64_A17.png') ;
 print(fig13, namefig13,'-dpng') ;
 
 disp('Proceso terminado')

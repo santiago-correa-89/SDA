@@ -1,6 +1,0 @@
-function [ Mazimutal ] = azimutalMatrix(thetaAzimutal)
-
-Mazimutal  = [  1            0                          0       ;...
-                0   cos(thetaAzimutal)     sin(thetaAzimutal)   ;...
-                0   -sin(thetaAzimutal)    cos(thetaAzimutal)   ];
-end

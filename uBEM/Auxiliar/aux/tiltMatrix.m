@@ -1,0 +1,6 @@
+function [ Mtilt ] = tiltMatrix(thetaTilt)
+
+Mtilt = [ cos(thetaTilt)  -sin(thetaTilt)    0 ; ...
+          sin(thetaTilt)  cos(thetaTilt)     0 ; ... 
+                0                 0          1];
+end

@@ -17,24 +17,32 @@ genEff =  94.4/100   ; % Generator Efficiency
 Igen   =  534.116    ; % Generator inertia kg m^2
 Irot   =  115926     ; % Rotor inertia
 Iblade =  11776047   ; % Blade inertia in the root 
-I      = nGen*nGen*Igen + Irot + 3*Iblade ; % Total inertia
+I      =  nGen*nGen*Igen + Irot + 3*Iblade ; % Total inertia
 
 % Flags
-DWM   = false; % Turn on Dynamic Wake Model
-DSM   = false; % Turn on Dynamic Stall Model
-SDM   = false; % Turn on Stall Delay Model
+DWM         = false; % Turn on Dynamic Wake Model
+DSMhansen   = false; % Turn on Dynamic Stall Model Hansen
+DSMBL       = true ; % Turn on Dynamic Stall Model Beddoess and Leishmann
+SDM         = false; % Turn on Stall Delay Model
+
+if DSMBL 
+    boolLeishmann = true; % Apply fprime method ref leishmann 2011 
+end
+
 % Wind Flags
-Uniform = false ; % Turn on uniform wind profile with X direction
+Uniform = true ; % Turn on uniform wind profile with X direction
 Share   = false ; % Turn on Share wind profile
-Turbsim = true  ; % Read Turbsim file to read wind velocity in the rotor plane
+Turbsim = false  ; % Read Turbsim file to read wind velocity in the rotor plane
 
 % Wind initialization 
-if Turbsim == 1
+if Turbsim
     FileName = 'ejemploParte2.bts' ;
     [Vwind, twrV0, z, y, yTwr, nz, ny, dy, dz, dt, yHub, y1, meanVhub] = readfile_BTS( FileName ) ;
-else
-    Vhub   = 20      ; % Wind velocity at hub height
+elseif Share
+    Vhub   = 20        ; % Wind velocity at hub height
     n      = 1/7       ; % Wind share potential coef
+elseif Uniform
+    Vhub   = 15        ;
 end
 
 % Blade geometry and mass distribution
@@ -55,11 +63,12 @@ thetaYaw    = 0*pi/180 ; % Angle must be in RADIANS!
 thetaCone   = 2.5*pi/180 ; % Angle must be in RADIANS!
 
 %initialization starts
-if Turbsim == 0
+if ~Turbsim
     delta_t    = 0.05  ;
+    maxtime    = 20    ;   
     timeVector = (0:delta_t:maxtime) ;
     tIter      = length(timeVector)  ;
-elseif Turbsim == 1
+elseif Turbsim
     delta_t = dt;
     [tLen, vLen, zGridLen, yGridLen] = size(Vwind) ;
     maxTime    = tLen*delta_t;
@@ -72,7 +81,7 @@ elseif Turbsim == 1
 end
 
 omega      = zeros(tIter, 1) ;     % Initialize angular speed rad/seg
-%omega     = 1.2671           ;
+
 %Read pre-determined airfoil data for the various blade elements.
 %The airfoil data is for this turbine described by 6 files containing 
 %lift, drag and moment coefficients for 6 different thickness to chord ratio.
@@ -92,15 +101,29 @@ file8      = '/Polars/NACA64_A17.txt';
 polars = { file1, file2, file3, file4, file5, file6, file7, file8 } ;
 
 % check airfoil data of the section using the ID 
-[aoa, liftCoef, dragCoef, momCoef ] = readairfoildata_v3( polars, path ) ;
+[aoast, liftCoef, dragCoef, momCoef ] = readairfoildata_v3( polars, path  ) ;
+% Data extracted from NREL 5MW documentation
+AoA0data  = [  0,    0,    -4.2,    -3.2,    -2,2,    -1.2,    -3.2,  -4.432] ;
+AoA1data  = [  0,    0,     8.0,     8.5,       9,    11.5,       9,       9] ;
+AoA2data  = [  0,    0,    -8.0,    -8.5,      -9,   -11.5,      -9,      -9] ;
+CnAoAdata = [  0,    0,  6.2047,  6.4462,  7.3326,  7.1838,  7.4888,  6.0031] ;
+Cd0data   = [0.5, 0.35,   0.006,   0.006,   0.008,   0.012,    0.03,  0.0065] ;
+Cn1data   = [  0,    0,  1.4144,  1.4336,   1.449,  1.6717,  1.3519,  1.4073] ;
+Cn2data   = [  0,    0, -0.5324, -0.6873, -0.6138, -0.3075, -0.3226, -0.7945] ;
 
 %initialization variables
-Vx              = zeros(yGridLen, zGridLen,  tIter) ;
-Vy              = zeros(yGridLen, zGridLen,  tIter) ;
-Vz              = zeros(yGridLen, zGridLen,  tIter) ;
-Vhub            = zeros( tIter ) ;
+if Turbsim
+    Vx              = zeros(yGridLen, zGridLen,  tIter) ;
+    Vy              = zeros(yGridLen, zGridLen,  tIter) ;
+    Vz              = zeros(yGridLen, zGridLen,  tIter) ;
+end
+
+Vxhub           = zeros( tIter ) ;
 Vyhub           = zeros( tIter ) ;
 Vzhub           = zeros( tIter ) ;
+Vxblade         = zeros( tIter ) ;
+Vyblade         = zeros( tIter ) ;
+Vzblade         = zeros( tIter ) ;
 rGx             = zeros(ni, nblade,  tIter) ;
 rGy             = zeros(ni, nblade,  tIter) ;
 rGz             = zeros(ni, nblade,  tIter) ;
@@ -118,9 +141,12 @@ pz              = zeros(ni, nblade,  tIter) ;
 fs              = zeros(ni, nblade,  tIter) ;
 clift           = zeros(ni, nblade,  tIter) ;
 cdrag           = zeros(ni, nblade,  tIter) ;
-angle_of_attack = zeros(ni, nblade,  tIter) ;
+AoA             = zeros(ni, nblade,  tIter) ;
 flowangle_deg   = zeros(ni, nblade,  tIter) ;
 thetaPitch      = zeros(tIter, nblade)      ;
+BLcoefs         = zeros(18, (ni - 2), nblade, tIter)  ;
+
+BLcoefs(14, :, :, 1) = 1; % fnPrime intialized as 1
 
 % Torque control values
 trqGen            = zeros(tIter, 1) ;
@@ -152,7 +178,8 @@ theta_w(1,3) = theta_w(1)+4*pi/3 ; % Angle must be in RADIANS!
 
 %Init pitch control parameters
 
-    [ thetaPitch(1,:), lastTimePC(1,1), ~, integError(1,1) ] = initPitchControl( nGen, omega(1, 1), thetaPitch(1,:), integError(1,1), ...
+[ thetaPitch(1,:), lastTimePC(1,1), ~, integError(1,1) ] = initPitchControl( nGen, omega(1, 1), ...
+                                                            thetaPitch(1,:), integError(1,1), ...
                                                             lastTimePC(1,1), timeVector(1,1) );
 
 %Initialization ends
@@ -160,13 +187,13 @@ theta_w(1,3) = theta_w(1)+4*pi/3 ; % Angle must be in RADIANS!
 
 for nt = 2:length(timeVector)-1
     timeVector(nt)
-    if Turbsim == 1
+    if Turbsim
         % Generate velocity componente in turbsim system for nt
         % time step
         Vx(:,:, nt) = squeeze( Vwind(nt,1,:,:) ) ; Vy(:,:, nt) = squeeze( Vwind(nt,2,:,:) ) ; Vz(:,:, nt) = squeeze( Vwind(nt,3,:,:) );
         % Hub velocity
         yHub = round(yGridLen/2);  zHub = round(zGridLen/2);
-        Vhub(nt)  = Vwind(nt, 1, yHub, zHub) ;
+        Vxhub(nt)  = Vwind(nt, 1, yHub, zHub) ;
         Vyhub(nt) = Vwind(nt, 2, yHub, zHub) ;
         Vzhub(nt) = Vwind(nt, 3, yHub, zHub) ;
     end
@@ -205,10 +232,11 @@ for nt = 2:length(timeVector)-1
         a14 = a34 * a23 * a12; % Transformation matrix from system 1 to 4.
         a41 = a14';
         
-        for j=1:ni-1
+        for j=1:ni
 
             % Update global position of the blade node rb(i)
-            ID            = sectionID(j) ; 
+            ID            = sectionID(j)      ;                  % Blade section ID
+            c             = chord(j)          ;                  % Blade sectio chord
             rblade        = [0, radius(j), 0]';                  % Blade section position vector in local system
             rGb           = a14'*rblade + a12'*Xhub + Ytower ;   % Blade section position vector in global system
             rGx(j, i, nt) = rGb(1);
@@ -216,20 +244,26 @@ for nt = 2:length(timeVector)-1
             rGz(j, i, nt) = rGb(3);
             rRot          = a34'*rblade ;     % Blade section position vector in system 3
     
-            %Estimate relative wind speed (velocity triangle)
-            
-            if Share == 1
+            %Estimate relative wind speed (velocity triangle)            
+            if Share
                 V0g   = shareWind(t, rGy(j, i, nt), Vhub, Hhub(2), n); % wind velocity in global coordinates share wind
-            elseif Uniform == 1
+            elseif Uniform
                 V0g   = uniWind( t, rGy(j, i, nt), Vhub ) ;            % wind velocity in global coordinates uniform wind
-            elseif Turbsim == 1
+            elseif Turbsim
                 % Interpolate coordinates velocity for actual section location
                 V0x(j, i, nt) = interp2( Ygrid, Zgrid, Vx(:,:, nt), rGy(j, i, nt) , rGz(j, i, nt) , 'linear' ); % Puedes ajustar el método de interpolación
                 V0y(j, i, nt) = interp2( Ygrid, Zgrid, Vy(:,:, nt), rGy(j, i, nt) , rGz(j, i, nt) , 'linear' ); % Puedes ajustar el método de interpolación
                 V0z(j, i, nt) = interp2( Ygrid, Zgrid, Vz(:,:, nt), rGy(j, i, nt) , rGz(j, i, nt) , 'linear' ); % Puedes ajustar el método de interpolación
-                V0g = [ V0x(j, i, nt); V0y(j, i, nt); V0z(j, i, nt) ] ;
-                Egl = [ 1 0 0 ; 0 0 -1; 0 1 0];
-                V0g = Egl*V0g ;
+                V0g           = [ V0x(j, i, nt); V0y(j, i, nt); V0z(j, i, nt) ] ;
+                Egl           = [ 1 0 0 ; 0 0 -1; 0 1 0];
+                V0g           = Egl*V0g ;
+                if j == ni-1
+                    if i == 1
+                        Vxblade(nt) = V0x(j, i, nt);
+                        Vyblade(nt) = V0y(j, i, nt);
+                        Vzblade(nt) = V0z(j, i, nt);
+                    end
+                end
             end
 
             V0l   = a14*V0g ;                                    % convert wind velocity in global coordinate to local blade coordinates            
@@ -242,23 +276,19 @@ for nt = 2:length(timeVector)-1
 
             [flowangle, vCoordSys ] = computeFlowAngle( vRel ) ;
 
-            % vrelz    = V0l(3) + wz(j, i, nt-1) - omega*rRot(2) ;  %  Tangecial relavite velocity
-            % vrelx    = V0l(1) + wx(j, i, nt-1)                        ;  % Normal relative velocity
-            % vrel_sqr = vrelx^2 + vrelz^2;
-            % flowangle                 = atan( vrelx/-vrelz )              ;
             vrelNorm = norm(vRel) ;  
             flowangle_deg(j, i, nt)   = rad2deg(flowangle)                ; % Convert to degress to interpolate in airfoils coefs    
             thetaTwist                = ( thetaPitch(nt, i) + twist(j) )  ; % Angle in DEGRESS
-            angle_of_attack(j, i, nt) = flowangle_deg(j, i, nt) - thetaTwist        ;
+            AoA(j, i, nt)             = flowangle_deg(j, i, nt) - thetaTwist        ;
             
             %interpolate to find lift and drag (static)      
             %interpolate the values of lift and drag to the different thicknesses                
-          
-            clstat    =  interp1( aoa(:,ID), liftCoef(:,ID),  angle_of_attack(j, i, nt), 'linear', 'extrap' );
-            cdstat    =  interp1( aoa(:,ID), dragCoef(:,ID),  angle_of_attack(j, i, nt), 'linear', 'extrap' );
-            %clinvthick(k) =  interp1( aoa(:,k), clinv(:,k),      angle_of_attack(j, i, nt), 'linear', 'extrap' );
-            %clfsthick(k)  =  interp1( aoa(:,k), clfullysep(:,k), angle_of_attack(j, i, nt), 'linear', 'extrap' );
-            %fsthick(k)    =  interp1( aoa(:,k), fstat(:,k),      angle_of_attack(j, i, nt), 'linear', 'extrap' );
+                       
+            clstat    =  interp1( aoast(:,ID), liftCoef(:,ID),  AoA(j, i, nt), 'linear', 'extrap' );
+            cdstat    =  interp1( aoast(:,ID), dragCoef(:,ID),  AoA(j, i, nt), 'linear', 'extrap' );
+            %clinvthick(k) =  interp1( aoa(:,k), clinv(:,k),      AoA(j, i, nt), 'linear', 'extrap' );
+            %clfsthick(k)  =  interp1( aoa(:,k), clfullysep(:,k), AoA(j, i, nt), 'linear', 'extrap' );
+            %fsthick(k)    =  interp1( aoa(:,k), fstat(:,k),      AoA(j, i, nt), 'linear', 'extrap' );
       
             % Interpolate to the actual thickness
             %clstat   = interp1( thick_prof(:), clthick(:)    , thick(j), 'linear', 'extrap' ) ; % Static 2D  Cl Coef
@@ -267,26 +297,49 @@ for nt = 2:length(timeVector)-1
             %clfs     = interp1( thick_prof(:), clfsthick(:)  , thick(j), 'linear', 'extrap' ) ; % Fully Separated Cl Coef 
             %fst      = interp1( thick_prof(:), fsthick(:)    , thick(j), 'linear', 'extrap' ) ; % Separation function
             
-            if SDM == 1
-                %% Apply Stall Delay Model 
+            % Apply Stall Delay Model 
+            if SDM
                 clstSDM = stallDelayModel(clinvisc, clstat, thetaTwist, chord(j), radius(j));
-                if DSM == 1
+                %% Apply Dynamic Stall Model
+                if DSMhansen
                     if j ~= 1
                         fst     = ( 2 * sqrt( clstSDM / clinvisc ) - 1)^2 ;
-                        %% Apply Dynamic Stall Model
                     end
-                    [ clift(j, i, nt), fs(j, i, nt) ] = dynamicStallModel(fst, fs(j, i, nt-1), clinvisc, clfs, delta_t, vrelNorm, chord(j));
+                    [ clift(j, i, nt), fs(j, i, nt) ] = dynamicStallModel(fst, fs(j, i, nt-1), clinvisc, ...
+                                                                        clfs, delta_t, vrelNorm, chord(j));
                     cdrag(j, i, nt)   = cdstat;
+                elseif DSMBL
+                    AoA0 = AoA0data(ID); Cd0 = Cd0data(ID); CnSlope = CnAoAdata(ID);
+                    Cn1 = Cn1data(ID); Cn2 = Cn2data(ID); AoA1 = AoA1data(ID); AoA2 = AoA2data(ID); 
+                    [BLcoefs] = DSMbeddoessLeishman(  AoA(j, i, nt), vrelNorm, delta_t, c,  ...
+                                                      BLcoefs(18, j, i, nt-1), AoA0, Cd0, CnSlope, ...
+                                                      clstSDM, cdstat, Cn1, Cn2, AoA1, AoA2, boolLeishmann );
+                    clift(j, i, nt) = BLcoefs(1, j, i, tIter) ;
+                    cdrag(j, i, nt) = BLcoefs(2, j, i, tIter) ;
                 else
                     clift(j, i, nt)   = clstSDM;
                     cdrag(j, i, nt)   = cdstat;
                 end
-            elseif SDM == 0
-                % Not apply Stall Delay Model
-                if DSM == 1
-                    %% Apply Dynamic Stall Model
-                    [ clift(j, i, nt), fs(j, i, nt) ] = dynamicStallModel(fst, fs(j, i, nt-1), clinvisc, clfs, delta_t, vrelNorm, chord(j));
+            % Not apply Stall Delay Model
+            elseif ~SDM
+                % Apply Dynamic Stall Model
+                if DSMhansen
+                    [ clift(j, i, nt), fs(j, i, nt) ] = dynamicStallModel(fst, fs(j, i, nt-1), clinvisc, ...
+                                                                        clfs, delta_t, vrelNorm, chord(j));
                     cdrag(j, i, nt)   = cdstat;
+                elseif DSMBL
+                    if j == 1 && j == 2
+                        clift(j, i, nt)   = clstat;
+                        cdrag(j, i, nt)   = cdstat;
+                    else
+                        AoA0 = AoA0data(ID); Cd0 = Cd0data(ID); CnSlope = CnAoAdata(ID);
+                        Cn1 = Cn1data(ID); Cn2 = Cn2data(ID); AoA1 = AoA1data(ID); AoA2 = AoA2data(ID); 
+                        [BLcoefs] = DSMbeddoessLeishman(  AoA(j, i, nt), vrelNorm, delta_t, c,  ...
+                                                        BLcoefs(:, j, i, nt-1), AoA0,  Cd0, CnSlope, ...
+                                                        clstat, cdstat, Cn1, Cn2, AoA1, AoA2, boolLeishmann );
+                        clift(j, i, nt) = BLcoefs(1, j, i, tIter) ;
+                        cdrag(j, i, nt) = BLcoefs(2, j, i, tIter) ;
+                    end
                 else
                     clift(j, i, nt)   = clstat;
                     cdrag(j, i, nt)   = cdstat;
@@ -301,7 +354,6 @@ for nt = 2:length(timeVector)-1
             
             px(j, i, nt) = BEMforces(1) ;
             pz(j, i, nt) = BEMforces(3) ;
-            %[thetaPitch(nt, i), flowangle_deg(j, i, nt), angle_of_attack(j, i, nt), px(j, i, nt), pz(j, i, nt) ]
             
             if isnan(flowangle_deg) == true
                 disp('error')
@@ -310,7 +362,6 @@ for nt = 2:length(timeVector)-1
             % For time step update induced wind (relaxation method)
             % Apply glauert heavy induced factor correction
             V0 = norm(V0l) ;
-            %V0 = sqrt(V0l(1)^2 + V0l(3)^2);
             a  = -wx(j, i, nt-1)/V0;
             if(a<0.333)
                 fglau=1;
@@ -361,12 +412,12 @@ for nt = 2:length(timeVector)-1
 end  %end iteration(timesim)
 
 %
-studyCase = 'TurbSimParte1';
+studyCase = 'LBmodel';
 startPlot = 1; 
 tStep     = 0.05 ;
 lw = 2.0 ; ms = 10; plotfontsize = 22 ; spanPlotTime = 1 ;
 axislw = 2 ; axisFontSize = 20 ; legendFontSize = 15 ; curveFontSize = 15 ; 
-folderPathFigs = './figs/uBEM/Outputs/Turbsim/Parte1' ;
+folderPathFigs = './figs/uBEM/Outputs/LBmodel/test' ;
 mkdir(folderPathFigs) 
 
 fig1 = figure(1);
@@ -434,22 +485,39 @@ title(labelTitle)
 namefig5 = strcat(folderPathFigs, ['/controlError=', studyCase,'.jpg'] ) ;
 print(fig5, namefig5,'-dpng') ;
 
-fig6 = figure(6);
-hold on; grid on
-labelTitle = 'Velocidad de viento en hub';
-plot(timeVector(startPlot:end-1), Vhub(startPlot:end-1, 1), 'r--', 'LineWidth', lw,'markersize',ms )
-hold on
-plot(timeVector(startPlot:end-1), Vyhub(startPlot:end-1, 1), 'b--', 'LineWidth', lw,'markersize',ms )
-hold on
-plot(timeVector(startPlot:end-1), Vzhub(startPlot:end-1, 1), 'k--', 'LineWidth', lw,'markersize',ms )
-labx=xlabel( 'Time (s)' ); laby=ylabel(' Velocidad (m/s) ');
-set(gca, 'linewidth', axislw, 'fontsize', curveFontSize ) ;
-set(labx, 'FontSize', axisFontSize); set(laby, 'FontSize', axisFontSize) ;
-title(labelTitle)
-namefig6 = strcat(folderPathFigs, ['/hubVelocidy=', studyCase,'.jpg'] ) ;
-print(fig6, namefig6,'-dpng') ;
+if Turbsim
+    fig6 = figure(6);
+    hold on; grid on
+    labelTitle = 'Velocidad de viento en hub';
+    plot(timeVector(startPlot:end-1), Vxhub(startPlot:end-1, 1), 'r--', 'LineWidth', lw,'markersize',ms )
+    hold on
+    plot(timeVector(startPlot:end-1), Vyhub(startPlot:end-1, 1), 'b--', 'LineWidth', lw,'markersize',ms )
+    hold on
+    plot(timeVector(startPlot:end-1), Vzhub(startPlot:end-1, 1), 'k--', 'LineWidth', lw,'markersize',ms )
+    labx=xlabel( 'Time (s)' ); laby=ylabel(' Velocidad (m/s) ');
+    set(gca, 'linewidth', axislw, 'fontsize', curveFontSize ) ;
+    set(labx, 'FontSize', axisFontSize); set(laby, 'FontSize', axisFontSize) ;
+    title(labelTitle)
+    namefig6 = strcat(folderPathFigs, ['/hubVelocity=', studyCase,'.jpg'] ) ;
+    print(fig6, namefig6,'-dpng') ;
+    
+    fig7 = figure(7);
+    hold on; grid on
+    labelTitle = 'Velocidad de viento en hub en punta de pala';
+    plot(timeVector(startPlot:end-1), Vxblade(startPlot:end-1, 1), 'r--', 'LineWidth', lw,'markersize',ms )
+    hold on
+    plot(timeVector(startPlot:end-1), Vyblade(startPlot:end-1, 1), 'b--', 'LineWidth', lw,'markersize',ms )
+    hold on
+    plot(timeVector(startPlot:end-1), Vzblade(startPlot:end-1, 1), 'k--', 'LineWidth', lw,'markersize',ms )
+    labx=xlabel( 'Time (s)' ); laby=ylabel(' Velocidad (m/s) ');
+    set(gca, 'linewidth', axislw, 'fontsize', curveFontSize ) ;
+    set(labx, 'FontSize', axisFontSize); set(laby, 'FontSize', axisFontSize) ;
+    title(labelTitle)
+    namefig7 = strcat(folderPathFigs, ['/bladeVelocity=', studyCase,'.jpg'] ) ;
+    print(fig7, namefig7,'-dpng') ;
+end
 
-fig7 = figure(7);
+fig8 = figure(8);
 hold on; grid on
 labelTitle = 'Fuerza de empuje sobre el rotor';
 plot(timeVector(startPlot:end-1), totalThrust(startPlot:end-1, 1)', 'r-o', 'LineWidth', lw,'markersize',ms )
@@ -457,7 +525,7 @@ labx=xlabel( 'Time (s)' ); laby=ylabel(' Fuerza (N) ');
 set(gca, 'linewidth', axislw, 'fontsize', curveFontSize ) ;
 set(labx, 'FontSize', axisFontSize); set(laby, 'FontSize', axisFontSize) ;
 title(labelTitle)
-namefig7 = strcat(folderPathFigs, ['/totalThrust=', studyCase,'.jpg'] ) ;
-print(fig7, namefig7,'-dpng') ;
+namefig8 = strcat(folderPathFigs, ['/totalThrust=', studyCase,'.jpg'] ) ;
+print(fig8, namefig8,'-dpng') ;
 
 clear fig1; clear fig2; clear fig3; clear fig4; clear fig5; clear fig6; clear fig7;

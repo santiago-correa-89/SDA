@@ -1,7 +1,7 @@
 function [ A , Aprime , PHI , ALPHA, CL, CD, ERR , j ] = BEM_method (B, c , r , t, lambda, theta_t, theta_p, Rrot, Rhub, Tol , CD_CL , flag_CLCD, factorCorreccion, aoa, clift, cdrag, cmomt)
 
 %% Inicializo parámetros 
-a0       = 0 ;
+a0       = 1/3 ;
 a_prime0 = 0   ;
 eps      = 1e-3;
 erraux   = Tol + eps ;
