@@ -164,19 +164,19 @@ end
 [ CnVn ] = LEvortexAdvection(sigma3, tauVn, CnVn1, CVn, CVn1, ...
                                         deltaS, Tvl, Tv0, LESF);
 
-%% Determination of Cn, CC, Cl and Cd
+%% Determination of Cn, Cc, Cl and Cd
 CNn  = CnFn  +  CnVn ;
 
-%CCn = eta*(CnSlope/beta)*(AoAEffn)^2*sqrt(fn2primen);
+CCn = eta*(CnSlope/beta)*(AoAEffn)^2*sqrt(fn2primen);
 
 %CCn = CcFn + CnVn*tan(AoAEffn)*( 1 - tauVn/Tvl ) ;
 
-if CnPrimen <= Cn2
-    CCn   = CcPn*eta*( sqrt(fn2primen) )*cos( AoAEffn ) ;
-else
-    phi   = 2*(CnPrimen - Cn2) + (fn2primen - fnprimen) ;
-    CCn   = CcPn*eta*( sqrt(fn2primen) )*( fn2primen^(phi) )*cos( AoAEffn ) ;
-end
+% if CnPrimen <= Cn2
+%     CCn   = CcPn*eta*( sqrt(fn2primen) )*cos( AoAEffn ) ;
+% else
+%     phi   = 2*(CnPrimen - Cn2) + (fn2primen - fnprimen) ;
+%     CCn   = CcPn*eta*( sqrt(fn2primen) )*( fn2primen^(phi) )*cos( AoAEffn ) ;
+% end
 
 % Total (Ejes viento)
 Cln = CNn*cos(AoAn)  +  CCn*sin(AoAn);

@@ -56,14 +56,14 @@ expCl   = OSUdata(:,4) ;
 expCd   = OSUdata(:,5) ;
 
 %% variables
-tVector = round(0:( max(expT)/119 ):max(expT), 3 ); % Time vector
+tVector = round(0:( max(expT)/119 ):max(expT), 3 ); % (0:0.001:6);  Time vector
 tIter   = length(tVector);
 AoA     = 8 - 5.5*cos(w*tVector) ; % Angle of attack variation
 
 %% Initiliazation BL model
 nBlades     = 1;
 nSections   = 1;
-T           = [ 1.5, 5, 7.0, 11.0 ] ;    %  LBM model time constant Tp, Tf0, Tv0, Tvl ( ref Pereira 2011 )
+T           = [ 1.5, 5, 7.0, 5.0 ] ;    %  LBM model time constant Tp, Tf0, Tv0, Tvl ( ref Pereira 2011 )
 [ BLcoefs ] = initDSMbeddoesLeishman( nSections, nBlades, tIter ) ;
 
 for i = 2:tIter
@@ -101,6 +101,8 @@ maxErrCd  = max(errCd)                ;
 meanErrCd = mean(errCd)./expCd(60:end)        ;
 mseErrCd  = immse(expCd(60:end), cdrag(60:end)')       ;
 rmseErrCd = rmse(expCd(60:end), cdrag(60:end)')        ;
+
+error = [mseErrCl, rmseErrCl, rmseErrCd, mseErrCd]
 
 lw = 1.0 ; ms = 10; plotfontsize = 22 ; spanPlotTime = 1 ;
 axislw = 2 ; axisFontSize = 20 ; legendFontSize = 15 ; curveFontSize = 15 ; 
@@ -188,9 +190,9 @@ hold on; grid on
 labelTitle = 'Uneastedy C_l models result';
 plot(AoAst(11:31), Clst(11:31), 'r', 'LineWidth', lw, 'markersize', ms )
 hold on
-plot(AoA(60:100), clift(60:100), 'k', 'LineWidth', lw, 'markersize', ms )
+plot(AoA(60:end), clift(60:end), 'k', 'LineWidth', lw, 'markersize', ms )
 hold on
-plot(AoA(60:100), CnP(60:100), 'b--', 'LineWidth', lw,'markersize',ms )
+plot(AoA(60:end), CnP(60:end), 'b--', 'LineWidth', lw,'markersize',ms )
 hold on
 plot(AoA(60:100), CnF(60:100), 'g--', 'LineWidth', lw,'markersize',ms )
 hold on

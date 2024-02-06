@@ -56,7 +56,7 @@ expCl   = OSUdata(:,4) ;
 expCd   = OSUdata(:,5) ;
 
 %% variables
-tVector = round(0:( max(expT)/119 ):max(expT), 3 ); % Time vector
+tVector = (0:0.001:6); %round(0:( max(expT)/119 ):max(expT), 3 ); % Time vector
 tIter   = length(tVector);
 AoA     = 20 - 5.5*cos(w*tVector) ;                 % Angle of attack variation
 
@@ -64,7 +64,7 @@ AoA     = 20 - 5.5*cos(w*tVector) ;                 % Angle of attack variation
 nBlades     = 1;
 nSections   = 1;
 T           = [ 1.5, 5.0, 6.0, 11.0 ] ;    %  LBM model time constant Tp, Tf0, Tv0, Tvl ( ref Pereira 2011 )
-[ BLcoefs ] = initDSMbeddoesLeishman( nSections, nBlades, tIter ) ;
+[ BLcoefs ] = initDSMbeddoesLeishman( nBlades, nSections, tIter ) ;
 
 for i = 2:tIter
     for j = 1:nBlades
@@ -91,17 +91,17 @@ for i = 2:tIter
     Cvn(:, i)    = BLcoefs(21,:, :, i) ;
 end
 
-errCl     = ( abs(expCl(60:end) - clift(60:end)')./expCl(60:end) )*100 ;
-maxErrCl  = max(errCl')                ;
-meanErrCl = mean(errCl')./expCl(60:end)        ;
-mseErrCl  = immse(expCl(60:end), clift(60:end)')      ;
-rmseErrCl = rmse(expCl(60:end), clift(60:end)')       ;
-
-errCd     = ( abs(expCd(60:end) - cdrag(60:end)')./expCd(60:end) )*100 ;
-maxErrCd  = max(errCd)                ;
-meanErrCd = mean(errCd)./expCd(60:end)        ;
-mseErrCd  = immse(expCd(60:end), cdrag(60:end)')       ;
-rmseErrCd = rmse(expCd(60:end), cdrag(60:end)')        ;
+% errCl     = ( abs(expCl(60:end) - clift(60:end)')./expCl(60:end) )*100 ;
+% maxErrCl  = max(errCl')                ;
+% meanErrCl = mean(errCl')./expCl(60:end)        ;
+% mseErrCl  = immse(expCl(60:end), clift(60:end)')      ;
+% rmseErrCl = rmse(expCl(60:end), clift(60:end)')       ;
+% 
+% errCd     = ( abs(expCd(60:end) - cdrag(60:end)')./expCd(60:end) )*100 ;
+% maxErrCd  = max(errCd)                ;
+% meanErrCd = mean(errCd)./expCd(60:end)        ;
+% mseErrCd  = immse(expCd(60:end), cdrag(60:end)')       ;
+% rmseErrCd = rmse(expCd(60:end), cdrag(60:end)')        ;
 
 lw = 1.0 ; ms = 10; plotfontsize = 22 ; spanPlotTime = 1 ;
 axislw = 2 ; axisFontSize = 20 ; legendFontSize = 15 ; curveFontSize = 15 ; 

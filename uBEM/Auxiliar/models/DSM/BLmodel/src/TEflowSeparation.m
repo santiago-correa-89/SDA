@@ -7,8 +7,8 @@ DFn       = DFn1*exp(-(deltaS)/Tf) + (fnprimen - fnprimen1)*exp(-(deltaS)/(2*Tf)
 fn2primen = fnprimen - DFn ;
 
 %% Trailing edge flow separation components
-CnFn   = CnCn*( ( (1 + sqrt(fn2primen) ) / 2 )^2 ) + CnNCn ;
+CnFn  = CnCn*( ( (1 + sqrt(fn2primen) ) / 2 )^2 ) + CnNCn ;
 
-CcFn = CcPn*eta*( sqrt(fn2primen) - 0.2 );
+CcFn  = CcPn*eta*( sqrt(fn2primen) - 0.2 );
 
 end
