@@ -20,22 +20,22 @@ Iblade =  11776047   ; % Blade inertia in the root
 I      =  nGen*nGen*Igen + Irot + 3*Iblade ; % Total inertia
 
 % Flags
-DWM     = false;  % Turn on Dynamic Wake Model
+DWM     = false; % Turn on Dynamic Wake Model
 DSM     = false; % Turn on Dynamic Stall Model
 OyeDSM  = false; % Turn on Oye Dynamic stall model
-BLDSM   = true ; % Turn on B-L Dynamic stall model
+BLDSM   = false ; % Turn on B-L Dynamic stall model
 
 % Wind Flags
 Uniform = false ; % Turn on uniform wind profile with X direction
-Share   = false ; % Turn on Share wind profile
-Turbsim = true  ; % Read Turbsim file to read wind velocity in the rotor plane
+Share   = true ; % Turn on Share wind profile
+Turbsim = false  ; % Read Turbsim file to read wind velocity in the rotor plane
 
 % Wind initialization 
 if Turbsim
     FileName = 'ejemploParte2.bts' ;
     [Vwind, twrV0, z, y, yTwr, nz, ny, dy, dz, dt, yHub, y1, meanVhub] = readfile_BTS( FileName ) ;
 elseif Share
-    Vhub   = 20        ; % Wind velocity at hub height
+    Vhub   = 18        ; % Wind velocity at hub height
     n      = 1/7       ; % Wind share potential coef
 elseif Uniform
     Vhub   = 15        ;
@@ -140,9 +140,10 @@ AoA             = zeros(ni, nblade,  tIter) ;
 flowangle_deg   = zeros(ni, nblade,  tIter) ;
 % BL model init + factors
 thetaPitch      = zeros(tIter, nblade)      ;
-T               = [ 1.5, 5.0, 6.0, 11.0 ]   ;    %  LBM model time constant Tp, Tf0, Tv0, Tvl ( ref Pereira 2011 )
-
-[ BLcoefs ]     = initDSMbeddoesLeishman( ni, nblade, tIter ) ;
+if BLDSM
+    T               = [ 1.5, 5.0, 6.0, 11.0 ]   ;    %  LBM model time constant Tp, Tf0, Tv0, Tvl ( ref Pereira 2011 )
+    [ BLcoefs ]     = initDSMbeddoesLeishman( ni, nblade, tIter ) ;
+end
 
 % Torque control values
 trqGen            = zeros(tIter, 1) ;
@@ -189,14 +190,14 @@ for nt = 2:length(timeVector)-1
         Vx(:,:, nt) = squeeze( Vwind(nt,1,:,:) ) ; Vy(:,:, nt) = squeeze( Vwind(nt,2,:,:) ) ; Vz(:,:, nt) = squeeze( Vwind(nt,3,:,:) );
         % Hub velocity
         yHub = round(yGridLen/2);  zHub = round(zGridLen/2);
-        Vxhub(nt)  = Vwind(nt, 1, yHub, zHub) ;
+        Vxhub(nt) = Vwind(nt, 1, yHub, zHub) ;
         Vyhub(nt) = Vwind(nt, 2, yHub, zHub) ;
         Vzhub(nt) = Vwind(nt, 3, yHub, zHub) ;
     end
     
     if timeVector(nt) >= 10
         DWM   = true ;  % Turn on Dynamic Wake Model
-        DSM   = true ;  % Turn on Dynamic Stall Model
+        DSM   = false ;  % Turn on Dynamic Stall Model
     end
 
     if nt == 2
@@ -272,7 +273,7 @@ for nt = 2:length(timeVector)-1
             [flowangle, vCoordSys ] = computeFlowAngle( vRel ) ;
 
             vrelNorm = norm(vRel) ;  
-            flowangle_deg(j, i, nt)   = rad2deg(flowangle)                ; % Convert to degress to interpolate in airfoils coefs    
+            flowangle_deg(j, i, nt)   = atan( vRel(3)/vRel(2)) ; %rad2deg(flowangle)                ; % Convert to degress to interpolate in airfoils coefs    
             thetaTwist                = ( thetaPitch(nt, i) + twist(j) )  ; % Angle in DEGRESS
             AoA(j, i, nt)             = flowangle_deg(j, i, nt) - thetaTwist        ;
             
@@ -309,10 +310,13 @@ for nt = 2:length(timeVector)-1
                                                           clstat, cdstat, Cn1, Cn2, AoA1, AoA2, T , ...
                                                           boolLeishmann );
                         
-                        clift(j, i, nt)  = BLcoefs(1, j, i, nt) ;buena  
+                        clift(j, i, nt)  = BLcoefs(1, j, i, nt) ; 
                         cdrag(j, i, nt)  = BLcoefs(2, j, i, nt) ;
 
                     end
+                else
+                    clift(j, i, nt)   = clstat;
+                    cdrag(j, i, nt)   = cdstat;
                 end
             else
                 clift(j, i, nt)   = clstat;
@@ -348,7 +352,7 @@ for nt = 2:length(timeVector)-1
             wzqs(j, i, nt)  = -3*lift*sin(flowangle)/aux2;
             wxqs(j, i, nt)  = -3*lift*cos(flowangle)/aux2;
             
-            if DWM == 1
+            if DWM
                 [wx(j, i, nt), wz(j, i, nt), wxint(j, i, nt), wzint(j, i, nt)] = dynamicInflow(wx(j, i, nt-1), wxqs(j, i, nt), wxqs(j, i, nt-1), ...
                 wxint(j, i, nt-1), wz(j, i, nt-1), wzqs(j, i, nt), wzqs(j, i, nt-1), wzint(j, i, nt-1), vrelNorm, radius(j), R, a, delta_t );
             else
@@ -361,8 +365,8 @@ for nt = 2:length(timeVector)-1
 
     % Calculate thrust and power   
     for nblade=1:3 
-            moment(nt,nblade) = powerFactor( radius(:) , pz(:,nblade,nt) ) ; 
-            thrust(nt,nblade) = thrustFactor( radius(:), px(:,nblade,nt) ) ;
+            moment(nt,nblade) = powerFactor( radius(:) , pz(:,nblade,nt) );  
+            thrust(nt,nblade) = thrustFactor( radius(:), px(:,nblade,nt) ); 
     end
 
     aeroPower(nt, 1)   = ( moment(nt, 1) + moment(nt, 2) + moment(nt, 3) )*omega(nt,1); 
@@ -374,19 +378,19 @@ for nt = 2:length(timeVector)-1
     [ trqGen(nt, 1), lastTimeGC(nt, 1), genOmegaF(nt, 1) ] = genControl( nGen, omega(nt, 1), thetaPitch(nt, 1), ...
                                trqGen(nt-1, 1), genOmegaF(nt-1, 1), lastTimeGC(nt-1, 1), timeVector(nt) ) ;
    
-    if nt <= length(timeVector) - 1 
+    if nt <= length(timeVector) - 1 && timeVector(nt) > 10
         [ thetaPitch(nt+1, :), lastTimePC(nt+1, 1), speedError(nt+1,1), integError(nt+1, 1) ] = pitchControl( nGen, omega(nt, 1), thetaPitch(nt, :), integError(nt, 1), lastTimePC(nt, 1), timeVector(nt) ) ;
         omega(nt+1, 1)  =  omega(nt, 1) + ( ( rotTrq(nt, 1) - (trqGen(nt, 1)*nGen) )/I ) * delta_t ;
     end
 end  %end iteration(timesim)
 
 %
-studyCase = 'share';
+studyCase = 'BLM_share_noDSM';
 startPlot = 1; 
-tStep     = 0.05 ;
+tStep     = delta_t ;
 lw = 2.0 ; ms = 10; plotfontsize = 22 ; spanPlotTime = 1 ;
 axislw = 2 ; axisFontSize = 20 ; legendFontSize = 15 ; curveFontSize = 15 ; 
-folderPathFigs = './figs/uBEM/Outputs/BLtest' ;
+folderPathFigs = './figs/uBEM/Outputs/fullBLtest' ;
 mkdir(folderPathFigs) 
 
 fig1 = figure(1);
@@ -497,19 +501,22 @@ title(labelTitle)
 namefig8 = strcat(folderPathFigs, ['/totalThrust=', studyCase,'.jpg'] ) ;
 print(fig8, namefig8,'-dpng') ;
 
-cl     = zeros(length(timeVector(1:end-1)), 1);
-cd     = zeros(length(timeVector(1:end-1)), 1);
-AoAout = zeros(length(timeVector(1:end-1)), 1);
+cl     = zeros(length(timeVector(1:end-1)), 2);
+cd     = zeros(length(timeVector(1:end-1)), 2);
+AoAout = zeros(length(timeVector(1:end-1)), 2);
 for i = 1:length(timeVector) - 1
-    AoAout(i,1) = AoA(15, 1, i)   ;
-    cl(i,1)     = clift(15, 1, i) ;
-    cd(i,1)     = cdrag(15, 1, i) ;   
+    AoAout(i,1:2) = [ AoA(7, 1, i)  , AoA(15, 1, i) ];
+    cl(i,1:2)     = [ clift(7, 1, i), clift(15,1,i) ];
+    cd(i,1:2)     = [ cdrag(7, 1, i), cdrag(15,1,i) ];   
 end
 
 fig9 = figure(9);
 hold on; grid on
 labelTitle = 'Lift coef';
-plot(timeVector(1:end-1), cl', 'r', 'LineWidth', lw,'markersize',ms )
+plot(timeVector(1000:end-1), cl(1000:end,1)', 'r', 'LineWidth', lw,'markersize',ms )
+hold on
+plot(timeVector(1000:end-1), cl(1000:end,2)', 'b', 'LineWidth', lw,'markersize',ms )
+legend('Radius - 24.05 m', 'Radius - 56.167 m', 'location','Best')
 labx=xlabel( 'Time (s)' ); laby=ylabel(' C_l ');
 set(gca, 'linewidth', axislw, 'fontsize', curveFontSize ) ;
 set(labx, 'FontSize', axisFontSize); set(laby, 'FontSize', axisFontSize) ;
@@ -520,8 +527,11 @@ print(fig9, namefig9,'-dpng') ;
 fig10 = figure(10);
 hold on; grid on
 labelTitle = 'Lift coef';
-plot(timeVector(1:end-1), cd', 'r', 'LineWidth', lw,'markersize',ms )
-labx=xlabel( 'Time (s)' ); laby=ylabel(' C_l ');
+plot(timeVector(1000:end-1), cd(1000:end,1), 'r', 'LineWidth', lw,'markersize',ms )
+hold on
+plot(timeVector(1000:end-1), cd(1000:end,2), 'b ', 'LineWidth', lw,'markersize',ms )
+labx=xlabel( 'Time (s)' ); laby=ylabel(' C_d ');
+legend('Radius - 24.05 m', 'Radius - 56.167 m', 'location','Best')
 set(gca, 'linewidth', axislw, 'fontsize', curveFontSize ) ;
 set(labx, 'FontSize', axisFontSize); set(laby, 'FontSize', axisFontSize) ;
 title(labelTitle)
@@ -531,8 +541,11 @@ print(fig10, namefig10,'-dpng') ;
 fig11 = figure(11);
 hold on; grid on
 labelTitle = 'C_l - AoA';
-plot(AoAout(1000:end), cl(1000:end), 'r', 'LineWidth', lw,'markersize',ms )
+plot(AoAout(1000:end, 1), cl(1000:end,1), 'r', 'LineWidth', lw,'markersize',ms )
+hold on
+plot(AoAout(1000:end, 2), cl(1000:end,2), 'b ', 'LineWidth', lw,'markersize',ms )
 labx=xlabel('AoA (deg)'); laby=ylabel('C_l');
+legend('Radius - 24.05 m', 'Radius - 56.167 m', 'location','Best')
 set(gca, 'linewidth', axislw, 'fontsize', curveFontSize ) ;
 set(labx, 'FontSize', axisFontSize); set(laby, 'FontSize', axisFontSize) ;
 title(labelTitle)
@@ -542,7 +555,10 @@ print(fig11, namefig11,'-dpng') ;
 fig12 = figure(12);
 hold on; grid on
 labelTitle = 'AoA';
-plot(timeVector(1:end-1), AoAout, 'r', 'LineWidth', lw,'markersize',ms )
+plot(timeVector(1:end-1), AoAout(:,1), 'r', 'LineWidth', lw,'markersize',ms )
+hold on
+plot(timeVector(1:end-1), AoAout(:,2), 'b', 'LineWidth', lw,'markersize',ms )
+legend('Radius - 24.05 m', 'Radius - 56.167 m', 'location','Best')
 labx=xlabel('Time (s)'); laby=ylabel('AoA (deg)');
 set(gca, 'linewidth', axislw, 'fontsize', curveFontSize ) ;
 set(labx, 'FontSize', axisFontSize); set(laby, 'FontSize', axisFontSize) ;

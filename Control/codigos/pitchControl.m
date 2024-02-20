@@ -24,33 +24,33 @@ KI = I * omegaSP * omegaN * omegaN /nGen / (-dPdtheta) ;
 
 deltaTime     = t1p - lastTimePC ; % Delta between control check
 
-    genOmega   = nGen*rotOmega ;
-    %cornerFreq = 1.570796                                  ; % Frequency parameter of filter
-    %alpha      = exp( ( deltaTime )*cornerFreq )           ; % Constant parameter of filter
-    genOmegaF  = genOmega                                  ; % filter gen speed
+genOmega   = nGen*rotOmega ;
+%cornerFreq = 1.570796                                  ; % Frequency parameter of filter
+%alpha      = exp( ( deltaTime )*cornerFreq )           ; % Constant parameter of filter
+genOmegaF  = genOmega                                  ; % filter gen speed
 
-    %% Set control parameters
-    speedError = - nGen*omegaSP + genOmegaF ;              % speed error to compute PID control
-    integError = integError + speedError*deltaTime; % acumulated speed error to compute PID control
+%% Set control parameters
+speedError = - nGen*omegaSP + genOmegaF        ; % speed error to compute PID control
+integError = integError + speedError*deltaTime ; % acumulated speed error to compute PID control
 
-    %% Saturate the integral error term
-    integError = min( max( integError, minPit / (GK * KI) ) , maxPit / (GK * KI) );
+%% Saturate the integral error term
+integError = min( max( integError, minPit / (GK * KI) ) , maxPit / (GK * KI) );
 
-    %% Compute control output
-    pitchConP = GK*KP*speedError ;
-    pitchConI = GK*KI*integError ;
+%% Compute control output
+pitchConP = GK*KP*speedError ;
+pitchConI = GK*KI*integError ;
 
-    bladePitchCnt  = pitchConP + pitchConI                         ;
-    bladePitchCnt  = min( max( bladePitchCnt, minPit), maxPit)     ; % Saturate the overall command using the pitch angle
-    
-    for i = 1:3
-        pitchRate = ( bladePitchCnt - bladePitchRad(1,i) )/deltaTime            ;
-        pitchRate = min ( max(pitchRate, -maxPitchRate), maxPitchRate)        ;
-    
-        bladePitchOut(1,i) = bladePitchRad(1,i) + pitchRate*deltaTime          ;  % compute blade pitch variation
-        bladePitchOut(1,i) = rad2deg( bladePitchOut(1,i))                     ;
-    end
-    lastTimePC = t1p ;
+bladePitchCnt  = pitchConP + pitchConI                         ;
+bladePitchCnt  = min( max( bladePitchCnt, minPit), maxPit)     ; % Saturate the overall command using the pitch angle
+
+for i = 1:3
+    pitchRate = ( bladePitchCnt - bladePitchRad(1,i) )/deltaTime            ;
+    pitchRate = min ( max(pitchRate, -maxPitchRate), maxPitchRate)        ;
+
+    bladePitchOut(1,i) = bladePitchRad(1,i) + pitchRate*deltaTime          ;  % compute blade pitch variation
+    bladePitchOut(1,i) = rad2deg( bladePitchOut(1,i))                     ;
+end
+lastTimePC = t1p ;
 
 end
 

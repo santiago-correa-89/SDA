@@ -63,7 +63,7 @@ AoA     = 8 - 5.5*cos(w*tVector) ; % Angle of attack variation
 %% Initiliazation BL model
 nBlades     = 1;
 nSections   = 1;
-T           = [ 1.5, 5, 7.0, 5.0 ] ;    %  LBM model time constant Tp, Tf0, Tv0, Tvl ( ref Pereira 2011 )
+T           = [ 1.5, 5, 6.0, 11.0 ] ;    %  LBM model time constant Tp, Tf0, Tv0, Tvl ( ref Pereira 2011 )
 [ BLcoefs ] = initDSMbeddoesLeishman( nSections, nBlades, tIter ) ;
 
 for i = 2:tIter
@@ -102,7 +102,7 @@ meanErrCd = mean(errCd)./expCd(60:end)        ;
 mseErrCd  = immse(expCd(60:end), cdrag(60:end)')       ;
 rmseErrCd = rmse(expCd(60:end), cdrag(60:end)')        ;
 
-error = [mseErrCl, rmseErrCl, rmseErrCd, mseErrCd]
+error = [mseErrCl, rmseErrCl, rmseErrCd, mseErrCd]*100
 
 lw = 1.0 ; ms = 10; plotfontsize = 22 ; spanPlotTime = 1 ;
 axislw = 2 ; axisFontSize = 20 ; legendFontSize = 15 ; curveFontSize = 15 ; 

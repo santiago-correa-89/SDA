@@ -102,7 +102,7 @@ meanErrCd = mean(errCd)./expCd(60:end)        ;
 mseErrCd  = immse(expCd(60:end), cdrag(60:end)')       ;
 rmseErrCd = rmse(expCd(60:end), cdrag(60:end)')        ;
 
-error = [mseErrCl, rmseErrCl, rmseErrCd, mseErrCd]
+error = [mseErrCl, rmseErrCl, mseErrCd, rmseErrCd]*100
 
 lw = 1.0 ; ms = 10; plotfontsize = 22 ; spanPlotTime = 1 ;
 axislw = 2 ; axisFontSize = 20 ; legendFontSize = 15 ; curveFontSize = 15 ; 

@@ -167,11 +167,21 @@ end
 %% Determination of Cn, Cc, Cl and Cd
 CNn  = CnFn  +  CnVn ;
 
+%% -------------------------------
+% Original BL model
 CCn = eta*(CnSlope/beta)*(AoAEffn)^2*sqrt(fn2primen);
 
-%CCn = CcFn + CnVn*tan(AoAEffn)*( 1 - tauVn/Tvl ) ;
+%% -------------------------------
+% Leishamn 2011
+%CCn = eta*CcPn*sqrt(fn2primen);  
 
-% if CnPrimen <= Cn2
+%% -------------------------------
+% Gonzalez 2014
+%CCn = CcFn + CnVn*tan(AoAEffn)*( 1 - tauVn/Tvl ) ; 
+
+%% -------------------------------
+% Beddoes y Leishman 1989
+% if CnPrimen <= Cn2              
 %     CCn   = CcPn*eta*( sqrt(fn2primen) )*cos( AoAEffn ) ;
 % else
 %     phi   = 2*(CnPrimen - Cn2) + (fn2primen - fnprimen) ;

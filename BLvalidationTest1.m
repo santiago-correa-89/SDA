@@ -31,8 +31,8 @@ Cn2           = 2.1815     ;  % Critical value of Cn′ at LE separation for neg
 state     = 'clean' ;
 testAmp   = '5'; 
 testMean  = '20'; 
-staticS809dataRe1m       = table2array( readtable('/TestData/static_s809_Re1m.txt'                 ) );
-OSUdata    = table2array( readtable('/TestData/unesteadyClean_Mean20_Amp5_Re1m.txt'  ) );
+staticS809dataRe1m = table2array( readtable('/TestData/static_s809_Re1m.txt'                 ) );
+OSUdata            = table2array( readtable('/TestData/unesteadyClean_Mean20_Amp5_Re1m.txt'  ) );
 %OSUdata    = table2array( readtable('/TestData/unesteadyLEGR_Mean20_Amp5_Re1m.txt'   ) );
 
 %% Experimental conditions
@@ -56,14 +56,14 @@ expCl   = OSUdata(:,4) ;
 expCd   = OSUdata(:,5) ;
 
 %% variables
-tVector = (0:0.001:6); %round(0:( max(expT)/119 ):max(expT), 3 ); % Time vector
+tVector = round(0:( max(expT)/119 ):max(expT), 3 ); % (0:0.001:6);  Time vector
 tIter   = length(tVector);
 AoA     = 20 - 5.5*cos(w*tVector) ;                 % Angle of attack variation
 
 %% Initiliazation BL model
 nBlades     = 1;
 nSections   = 1;
-T           = [ 1.5, 5.0, 6.0, 11.0 ] ;    %  LBM model time constant Tp, Tf0, Tv0, Tvl ( ref Pereira 2011 )
+T           = [ 1.5, 5, 6.0, 11.0 ] ;     %  LBM model time constant Tp, Tf0, Tv0, Tvl ( ref Pereira 2011 )
 [ BLcoefs ] = initDSMbeddoesLeishman( nBlades, nSections, tIter ) ;
 
 for i = 2:tIter
@@ -91,17 +91,19 @@ for i = 2:tIter
     Cvn(:, i)    = BLcoefs(21,:, :, i) ;
 end
 
-% errCl     = ( abs(expCl(60:end) - clift(60:end)')./expCl(60:end) )*100 ;
-% maxErrCl  = max(errCl')                ;
-% meanErrCl = mean(errCl')./expCl(60:end)        ;
-% mseErrCl  = immse(expCl(60:end), clift(60:end)')      ;
-% rmseErrCl = rmse(expCl(60:end), clift(60:end)')       ;
-% 
-% errCd     = ( abs(expCd(60:end) - cdrag(60:end)')./expCd(60:end) )*100 ;
-% maxErrCd  = max(errCd)                ;
-% meanErrCd = mean(errCd)./expCd(60:end)        ;
-% mseErrCd  = immse(expCd(60:end), cdrag(60:end)')       ;
-% rmseErrCd = rmse(expCd(60:end), cdrag(60:end)')        ;
+errCl     = abs(( expCl(60:end) - clift(60:end)')./abs(expCl(60:end)) )*100 ;
+maxErrCl  = max(errCl')                ;
+meanErrCl = mean(errCl')./expCl(60:end)        ;
+mseErrCl  = immse(expCl(60:end), clift(60:end)')      ;
+rmseErrCl = rmse(expCl(60:end), clift(60:end)')       ;
+
+errCd     = abs(( expCd(60:end) - cdrag(60:end)')./abs(expCd(60:end)))*100 ;
+maxErrCd  = max(errCd)                ;
+meanErrCd = mean(errCd)./expCd(60:end)        ;
+mseErrCd  = immse(expCd(60:end), cdrag(60:end)')       ;
+rmseErrCd = rmse(expCd(60:end), cdrag(60:end)')        ;
+
+error = [mseErrCl, rmseErrCl, mseErrCd, rmseErrCd]
 
 lw = 1.0 ; ms = 10; plotfontsize = 22 ; spanPlotTime = 1 ;
 axislw = 2 ; axisFontSize = 20 ; legendFontSize = 15 ; curveFontSize = 15 ; 
